@@ -1,0 +1,9 @@
+# The built static catalog is committed in dist; no build command is needed.
+[build]
+  publish = "dist"
+
+# Preserve links shared while the repository root was being published.
+[[redirects]]
+  from = "/dist/*"
+  to = "/:splat"
+  status = 301
