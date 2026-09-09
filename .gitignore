@@ -1,0 +1,11 @@
+__pycache__/
+.DS_Store
+*.zip
+.env
+.env.*
+node_modules/
+
+# Reproducible, uncompressed data intermediates
+data/catalog.json
+data/source-tables.json
+data/source-workbook.csvs
