@@ -33,16 +33,6 @@
       "sourceCount": 1
     },
     {
-      "id": "MEM-93729359291a9c5f",
-      "title": "40 Days + Capital Campaign (Fully Integrated)",
-      "subtitle": "",
-      "types": [
-        "40_day_campaign"
-      ],
-      "status": "PROPOSED",
-      "sourceCount": 1
-    },
-    {
       "id": "MEM-3e087fb5d60889bb",
       "title": "40 Days - Generous Living",
       "subtitle": "",
@@ -121,16 +111,6 @@
       ],
       "status": "PROPOSED",
       "sourceCount": 2
-    },
-    {
-      "id": "MEM-3fdba92b7b0c2747",
-      "title": "40 days each",
-      "subtitle": "",
-      "types": [
-        "40_day_campaign"
-      ],
-      "status": "PROPOSED",
-      "sourceCount": 1
     },
     {
       "id": "MEM-84492e2ea5beb6bf",
