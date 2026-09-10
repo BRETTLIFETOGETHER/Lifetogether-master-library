@@ -1,9 +1,9 @@
 {
   "passed": true,
   "sourceSections": 80,
-  "sourceRows": 70122,
-  "catalogPlacements": 64149,
-  "uniqueRecordIds": 64149,
+  "sourceRows": 70118,
+  "catalogPlacements": 64145,
+  "uniqueRecordIds": 64145,
   "websiteEntrypoints": 10,
   "renderedRoutes": 114,
   "recommendationCases": 128,
