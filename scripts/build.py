@@ -1,6 +1,7 @@
 """Reproducible read-only import and dependency-free static HTML build."""
 from pathlib import Path
 import csv, io, json, re, gzip, base64, hashlib, urllib.parse, collections
+from import_memory_catalog import load_memory_catalog
 ROOT=Path(__file__).resolve().parents[1]
 def dump(path,value):
     path.parent.mkdir(parents=True,exist_ok=True); path.write_text(json.dumps(value,ensure_ascii=False,separators=(',',':')))
@@ -78,8 +79,11 @@ for s in sections:
         if not title:continue
         def get(*keys):return next((raw[k] for k in keys if raw.get(k)), '')
         extra_records.append({'Master ID':f'S-{s["id"]:02d}-{idx+1:05d}','Campaign Title':title,'Subtitle':get('Subtitle','Session Subtitle','Subtitle / Description','Subtitle / Scope','Campaign Subtitle','Subtitle / Promise'),'Category':get('Category','Category / Section','Category / Lane','Category / Channel','Source Category','Category / lane') or s['name'],'Best For / Audience':get('Best For / Audience','Audience','Best For','Audience / Market'),'Core Felt Need / Theme':get('Core Theme','Theme / Notes','Theme'),'Format / Product Type':get('Format / Product Type','Format','Product Type','Item Type') or 'Source placement','Priority Grade':get('Priority Grade'),'Build Decision':get('Build Decision','Recommended Treatment','Treatment / Notes'),'Do Not Send to AI Yet?':get('Do Not Send to AI Yet?'),'Source Item Type':get('Source Item Type'),'Source Document':get('Source Document','Source File','Source','Source document'),'Source Sheet / Section':s['name'],'Original Link / Reference':get('Original Reference','Original Reference / Link','Original Link / Reference','Source Line'),'Conflict Flag':get('Conflict Flag'),'Notes':get('Notes','Development Note','Source Note'),'_section':s['id'],'_row':idx,'_canonical':get('Master ID','Active Master ID')})
+memory_records, memory_stats = load_memory_catalog(ROOT, sections)
+extra_records.extend(memory_records)
 intelligence=sorted(set(r[0] for r in sections[69]['rows']))
 stats=dict(master=len(master),catalogPlacements=len(master)+len(extra_records),categories=len(set(r.get('Category') for r in master)),sections=len(sections),sourceRows=sum(len(s['rows']) for s in sections),archiveAssets=len(assets),archiveProjects=len(set(a['project'] for a in assets)),htmlAssets=sum(a['format']=='HTML' for a in assets),held=sum(r.get('Do Not Send to AI Yet?','').lower().startswith('yes') for r in master),benchmarks=sum(r.get('Priority Grade')=='REFERENCE' for r in master),initiatives=len(initiatives),intelligenceSystems=len(intelligence))
+stats.update(memory_stats)
 data=dict(schemaVersion=1,date='2026-09-09',sourceUrl='https://docs.google.com/spreadsheets/d/1UQwgmPLqny7JVyU5POeQrCGMjRqJ7FAy/edit',sections=sections,assets=assets,spokes=spokes,initiatives=initiatives,stats=stats,extraRecords=extra_records,intelligence=intelligence)
 dump(ROOT/'data/catalog.json',data)
 payload=base64.b64encode(gzip.compress(json.dumps(data,ensure_ascii=False,separators=(',',':')).encode(),mtime=0)).decode()
