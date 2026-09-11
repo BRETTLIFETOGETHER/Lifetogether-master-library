@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "checks": 18,
+  "coverage": [
+    "calendar and duration math",
+    "source partition and holds",
+    "sermon import and malformed files",
+    "source-grounded plans",
+    "restricted-source exclusion",
+    "edit preservation",
+    "readiness",
+    "portable backup validation",
+    "calendar and playbook exports",
+    "task rescheduling",
+    "seven routes and persistence",
+    "HTML escaping"
+  ],
+  "browserChecks": "See the release notes for manual browser verification."
+}

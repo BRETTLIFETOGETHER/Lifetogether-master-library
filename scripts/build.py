@@ -88,9 +88,9 @@ data=dict(schemaVersion=1,date='2026-09-09',sourceUrl='https://docs.google.com/s
 dump(ROOT/'data/catalog.json',data)
 payload=base64.b64encode(gzip.compress(json.dumps(data,ensure_ascii=False,separators=(',',':')).encode(),mtime=0)).decode()
 dist=ROOT/'dist'; dist.mkdir(exist_ok=True)
-shell=(ROOT/'src/index.html').read_text(); css=(ROOT/'src/style.css').read_text(); app=(ROOT/'src/app.js').read_text(); core=(ROOT/'src/core.js').read_text(); app=app.replace('/* CATALOG_EXTENSIONS */',(ROOT/'src/catalog-extensions.js').read_text())
-complete=shell.replace('/* APP_CSS */',css).replace('/* APP_CORE */',core).replace('/* APP_JS */',app).replace('DATA_PAYLOAD',payload)
-(dist/'index.html').write_text(complete)
+shell=(ROOT/'src/index.html').read_text(); css=(ROOT/'src/style.css').read_text()+'\n'+(ROOT/'src/campaign-builder.css').read_text(); app=(ROOT/'src/app.js').read_text(); core=(ROOT/'src/core.js').read_text(); app=app.replace('/* CATALOG_EXTENSIONS */',(ROOT/'src/catalog-extensions.js').read_text()); app=(ROOT/'src/campaign-core.js').read_text()+'\n'+app.replace('/* CAMPAIGN_BUILDER */',(ROOT/'src/campaign-builder.js').read_text())
+page=shell.replace('<style>/* APP_CSS */</style>','<link rel="stylesheet" href="./style.css">').replace('<script id="data-payload" type="application/octet-stream">DATA_PAYLOAD</script>','<script src="./data.js"></script>').replace('<script>/* APP_CORE */</script>','<script src="./core.js"></script>').replace('<script>/* APP_JS */</script>','<script src="./app.js"></script>')
+(dist/'index.html').write_text(page)
 # Independent entry pages share one immutable catalog payload and UI; no data copies to reconcile.
 (dist/'data.js').write_text('window.LT_PAYLOAD='+json.dumps(payload)+';')
 (dist/'core.js').write_text(core);(dist/'app.js').write_text(app);(dist/'style.css').write_text(css)
@@ -99,4 +99,4 @@ for s in spokes:
     page=shell.replace('<style>/* APP_CSS */</style>','<link rel="stylesheet" href="../../style.css">').replace('<script id="data-payload" type="application/octet-stream">DATA_PAYLOAD</script>','<script src="../../data.js"></script>').replace('<script>/* APP_CORE */</script>','<script src="../../core.js"></script>').replace('<script>/* APP_JS */</script>',f'<script>if(!location.hash)location.hash="/website/{s["id"]}";</script><script src="../../app.js"></script>')
     (folder/'index.html').write_text(page.replace('<title>LifeTogether · Master Library</title>',f'<title>{s["domain"]} · LifeTogether</title>'))
 dump(ROOT/'docs/import-report.json',dict(**stats,sourceSHA256=hashlib.sha256(gzip.decompress((ROOT/'data/source-workbook.csvs.gz').read_bytes())).hexdigest(),archiveCommit=tree['sha'],limitations=['Drive readable export preserves cell values, not original workbook formatting or original worksheet names. Section labels are descriptive navigation names.','18,569 master records include titles, structural items, sessions, and reference-only products. They are not 18,569 completed campaigns.','Archive files are indexed from the verified Git tree and README; individual completeness, rights, and executable behavior are unverified.','Prior context names augment the workbook; proposed scope is not approval.','This version builds curation briefs. It does not generate complete manuscripts or run every proposed platform.']))
-print(json.dumps(stats));print('HTML bytes',len(complete.encode()))
+print(json.dumps(stats));print('HTML bytes',(dist/'index.html').stat().st_size)
