@@ -7,7 +7,7 @@ const LTWorkspace = (() => {
   const fold=v=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
   function empty(){return {schema,revision:'',church:{},sermons:[],collections:[],notes:{},searches:[],events:[],recent:[],survey:{},preferences:{largeText:false,highContrast:false,reduceMotion:false,focus:false},lastBackup:''};}
   function church(raw,C){const out={};for(const [k,v] of Object.entries(C.create().profile)){if(['launchDate','objective','nextStep','catalytic','stories','multiplication','champions'].includes(k))continue;if(raw?.[k]!==undefined)out[k]=typeof v==='number'?C.number(raw[k],0,100000):clean(raw[k],4000);}if(out.goal&&!Object.hasOwn(C.goals,out.goal))delete out.goal;if(out.duration&&!C.durations.includes(out.duration))delete out.duration;if(out.groupSize!==undefined)out.groupSize=C.number(out.groupSize,1,100);if(out.participation!==undefined)out.participation=C.number(out.participation,0,100);return out;}
-  function route(v){const s=clean(v,3000);return /^#\/(home|search|catalog|record|archive|asset|projects|project|ecosystem|website|initiative|intelligence|source|sources|survey|results|collection|campaigns|sermons|church|notebook|calendar|settings|help)(?:[/?]|$)/.test(s)?s:'#/home';}
+  function route(v){const s=clean(v,3000);return /^#\/(home|search|catalog|record|archive|asset|projects|project|ecosystem|website|initiative|intelligence|source|sources|survey|results|collection|campaigns|campaign-finder|sermons|church|notebook|calendar|settings|help)(?:[/?]|$)/.test(s)?s:'#/home';}
   function validate(raw,C,knownIds){
     if(!raw||raw.schema!==schema)throw Error('Choose a LifeTogether workspace file.');
     const out=empty();out.revision=clean(raw.revision,100);out.church=church(raw.church,C);

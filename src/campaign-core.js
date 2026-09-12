@@ -216,3 +216,101 @@ const LTCampaign = (() => {
   return {schema,durations,layers,goals,components,phases,id,copy,clean,number,norm,safeURL,date,weekCount,create,source,denied,catalogLayer,fromRecord,searchCatalog,selected,teachingSources,extracted,syncWeeks,capacity,days,descriptors,draft,fingerprint,buildAssets,launchTasks,readiness,importCampaign,docxXML,parseCSV,importSources,markdown,calendar,example};
 })();
 if(typeof module!=='undefined')module.exports=LTCampaign;
+
+// Discovery indexes source metadata; it does not certify a manuscript or infer reuse rights.
+const LTCampaignFinder = (() => {
+  const C=LTCampaign;
+  const audiences={church:'Whole church',groups:'Small groups',family:'Families',youth:'Youth & students',children:'Children',leaders:'Leaders',workplace:'Workplace'};
+  const types={campaign:'Campaigns & journeys',catalytic:'Catalytic Sundays',series:'Teaching series',reference:'Church references',sermon:'My sermon starting points'};
+  const goalTerms={
+    community:['belong','belonging','community','communities','together','hospitality','connection','connections','friendship','friendships','fellowship'],
+    formation:['faith','formation','prayer','praying','discipleship','spiritual','obedience','abide','abiding','devotion'],
+    generosity:['generosity','generous','giving','steward','stewards','stewardship','ownership','finances','financial'],
+    legacy:['family','families','legacy','generation','generations','generational','parent','parents','parenting','heir','heirs'],
+    leadership:['purpose','leader','leaders','leadership','calling','vision','serve','serving','service','gifts'],
+    peace:['peace','hope','anxiety','anxious','resilience','resilient','rest','resting','sabbath','grief','healing'],
+    mission:['mission','missions','missional','outreach','neighbor','neighbors','neighbour','neighbours','evangelism','evangelistic'],
+    scripture:['jesus','christ','gospel','gospels','scripture','scriptures','bible','biblical','red letter']
+  };
+  const audienceTerms={
+    church:['church','churches','churchwide','church wide','whole church','congregation','congregations'],
+    groups:['small group','small groups','group leaders','group hosts'],
+    family:['family','families','household','households','parents','parenting','couples'],
+    youth:['youth','student','students','teen','teens','teenagers','young adults','next gen'],
+    children:['child','children','kids','preschool','elementary'],
+    leaders:['leader','leaders','leadership','pastor','pastors','staff','teaching teams'],
+    workplace:['workplace','workplaces','company','companies','business','employees','executives','managers','corporate']
+  };
+  const norm=v=>String(v??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const has=(text,term)=>(' '+text+' ').includes(' '+term+' ');
+  const matches=(text,terms)=>terms.filter(term=>has(text,term));
+  const evidenceMap=(text,definitions)=>Object.fromEntries(Object.entries(definitions).map(([key,terms])=>[key,matches(norm(text),terms)]).filter(([,terms])=>terms.length));
+  const hardHold=r=>/\b(?:do not build|removed|park for later|deferred)\b/i.test([r['Build Decision'],r['Source Item Type'],r.Notes].join(' '));
+  function durationInfo(fields) {
+    const evidence=[],numberWords={seven:7,ten:10,fourteen:14,'twenty one':21,thirty:30,forty:40,sixty:60,ninety:90};
+    for(const [field,value] of Object.entries(fields)){
+      // Ranges do not establish an exact duration. Session counts are never converted to days.
+      const text=String(value||'').replace(/[\u2010-\u2015\u2212]/g,'-').replace(/\b\d+\s*(?:-|to)\s*\d+\s*[- ]?days?\b/gi,'');
+      for(const m of text.matchAll(/\b(\d{1,3}(?:\s*[\/,]\s*\d{1,3})*)\s*[- ]?\s*days?\b/gi)){
+        for(const raw of m[1].split(/[\/,]/)){const days=Number(raw.trim());if(days>0&&days<=366)evidence.push({days,text:m[0],field});}
+      }
+      const words=norm(text);for(const [word,days] of Object.entries(numberWords))if(has(words,word+' day')||has(words,word+' days'))evidence.push({days,text:word+' days',field});
+    }
+    const durations=[...new Set(evidence.map(x=>x.days))].sort((a,b)=>a-b);
+    return {duration:durations.length===1?durations[0]:null,durations,durationLabel:durations.length?durations.join(' / ')+' days':'Duration unconfirmed',durationEvidence:evidence};
+  }
+  function classify(r,layer) {
+    const title=String(r['Campaign Title']||''),subtitle=String(r.Subtitle||''),format=String(r['Format / Product Type']||''),item=String(r['Source Item Type']||''),metadata=norm(item+' '+format),identity=norm(title+' '+subtitle+' '+item+' '+format);
+    // A campaign word in a tool, source module, or marketing asset does not make it a campaign.
+    if(/\b(?:builder|platform|module|toolkit|worksheet|template|component|asset|catalog|architecture|system|service offering|newsletter|email|white paper|sales|offer|investment|taxonomy|category|section header|format system|format option|format naming|production|workflow|companion)\b/.test(metadata)||(/\blibrary\b/.test(metadata)&&!/\bcampaign seed\b/.test(metadata)))return null;
+    if(/\b(?:study session|campaign session|curriculum session|daily movement|weekly movement|journey movement|campaign movement|devotional day|process step|implementation step|governance rule)\b/.test(metadata))return null;
+    if(/^(?:top \d+|part \d+|chapter \d+|i want|i need)\b/.test(norm(title))||/\b(?:platform|toolkit|campaign builder|campaign catalog|campaign library|campaign database|campaign system|campaign accelerator|catalytic sunday playbook|catalytic church calendar|master ecosystem)\b/.test(norm(title))||norm(title)==='catalytic sundays launch something')return null;
+    if(layer==='church'&&/\b(?:small group product|bible study|sermon series|campaign)\b/.test(identity))return {type:'reference',evidence:'Indexed church reference: '+(format||item)};
+    if(/\bcatalytic sunday\b/.test(identity)||r._memory?.types?.includes('catalytic_sunday'))return {type:'catalytic',evidence:'Catalytic Sunday identified in the source'};
+    if(/\bcampaign\b/.test(identity)||r._memory?.types?.includes('40_day_campaign'))return {type:'campaign',evidence:'Campaign identified in '+(format?'source format: '+format:item?'source type: '+item:'the title or subtitle')};
+    if(/\bseries\b/.test(identity))return {type:'series',evidence:'Teaching series identified in '+(format?'source format: '+format:'the title or subtitle')};
+    if(/\b(?:\d{1,3}|seven|ten|twenty one|thirty|forty|sixty|ninety) days?\b/.test(identity)&&/\b(?:journey|challenge|devotional|experience)\b/.test(identity))return {type:'campaign',evidence:'A timed journey identified in the title, subtitle, or format'};
+    return null;
+  }
+  function catalogCandidate(r) {
+    if(!r||!String(r['Master ID']||'').trim()||!String(r['Campaign Title']||'').trim()||hardHold(r))return null;
+    const layer=C.catalogLayer(r);if(!layer)return null;
+    const restricted=C.denied(r);if(restricted&&layer!=='church')return null;
+    const classification=classify(r,layer);if(!classification)return null;
+    const title=String(r['Campaign Title']),subtitle=String(r.Subtitle||''),category=String(r.Category||''),audienceText=String(r['Best For / Audience']||''),format=String(r['Format / Product Type']||''),theme=String(r['Core Felt Need / Theme']||'');
+    const goalEvidence=evidenceMap([title,subtitle,category,theme].join(' '),goalTerms);
+    const audienceEvidence=evidenceMap([audienceText,title,subtitle].join(' '),audienceTerms);
+    const duration=durationInfo({title,subtitle,format});
+    const status=layer==='church'?'Church reference only':r._memory?'Recovered '+(classification.type==='catalytic'?'Sunday':'campaign')+' concept':/^(?:yes|review)$/i.test(r['Conflict Flag']||'')?'Review flagged concept':classification.type==='catalytic'?'Catalytic Sunday concept':classification.type==='series'?'Series concept':'Campaign concept';
+    return {id:'catalog:'+r['Master ID'],kind:'catalog',recordId:r['Master ID'],title,subtitle,layer,...classification,...duration,goals:Object.keys(goalEvidence),audiences:Object.keys(audienceEvidence),goalEvidence,audienceEvidence,status,sourceLabel:C.layers[layer],category,format,audienceText,restricted,restrictionReason:restricted?'The source is held from AI use; available here for reference only.':'',search:norm([r['Master ID'],title,subtitle,category,audienceText,format,theme].join(' ')),priority:({'AA':5,'A':4,'A or AA':4,'B':2,'C':1}[r['Priority Grade']]||0)};
+  }
+  function sermonCandidate(s) {
+    if(!s||!s.id||!String(s.title||'').trim()||s.archived||s.permission==='restricted'||s.catalogRestricted)return null;
+    const title=String(s.title),subtitle=String(s.subtitle||''),audienceText=String(s.audience||''),theme=[title,subtitle,s.series,s.bigIdea].filter(Boolean).join(' '),goalEvidence=evidenceMap(theme,goalTerms),audienceEvidence=evidenceMap([audienceText,title,subtitle].join(' '),audienceTerms);
+    // A sermon about forty days is not evidence of a forty-day campaign schedule.
+    return {id:'sermon:'+s.id,kind:'sermon',sermonId:s.id,title,subtitle,layer:'pastor',type:'sermon',...durationInfo({}),goals:Object.keys(goalEvidence),audiences:Object.keys(audienceEvidence),goalEvidence,audienceEvidence,status:'Sermon starting point',sourceLabel:C.layers.pastor,category:String(s.series||''),format:'Personal sermon',audienceText,evidence:'A sermon from your library; a campaign has not been built from it yet.',restricted:false,restrictionReason:'',search:norm([s.id,theme,audienceText,s.scripture,s.speaker,s.notes].join(' ')),priority:0};
+  }
+  function index(records=[],sermons=[]) {
+    const items=[],seen=new Set();for(const [list,make] of [[records,catalogCandidate],[sermons,sermonCandidate]])for(const raw of list){const item=make(raw);if(item&&!seen.has(item.id)){items.push(item);seen.add(item.id);}}return items;
+  }
+  function search(items,filters={}) {
+    const terms=norm(filters.q).split(' ').filter(Boolean),active=v=>v&&v!=='all';
+    const out=[];for(const item of items){
+      if(active(filters.layer)&&item.layer!==filters.layer||active(filters.type)&&item.type!==filters.type||active(filters.goal)&&!item.goals.includes(filters.goal)||active(filters.audience)&&!item.audiences.includes(filters.audience))continue;
+      if(active(filters.duration)&&(filters.duration==='unknown'?item.durations.length:!item.durations.includes(Number(filters.duration))))continue;
+      if(!terms.every(term=>has(item.search,term)))continue;
+      const reasons=[item.evidence];let score=(item.restricted?-100:0)+(item.kind==='catalog'?5:0)+item.priority+(item.subtitle?2:0)+(item.durations.length===1?2:0);
+      if(terms.length){const title=norm(item.title);score+=terms.reduce((n,t)=>n+(has(title,t)?12:2),0);if(title===norm(filters.q))score+=30;reasons.push('Search terms found: '+terms.join(', '));}
+      if(active(filters.goal)){const matched=item.goalEvidence[filters.goal]||[];score+=matched.length*3;reasons.push('Goal terms in the source: '+matched.slice(0,4).join(', '));}
+      if(active(filters.audience))reasons.push('Audience terms in the source: '+(item.audienceEvidence[filters.audience]||[]).slice(0,4).join(', '));
+      if(active(filters.duration))reasons.push(filters.duration==='unknown'?'No exact day count supplied in the source':filters.duration+' days stated in the source');
+      if(item.layer==='church')reasons.push(item.restricted?'Reference only — source is held from AI use':'Reference only — source rights remain unconfirmed');
+      out.push({...item,goals:[...item.goals],audiences:[...item.audiences],durations:[...item.durations],durationEvidence:item.durationEvidence.map(x=>({...x})),goalEvidence:Object.fromEntries(Object.entries(item.goalEvidence).map(([k,v])=>[k,[...v]])),audienceEvidence:Object.fromEntries(Object.entries(item.audienceEvidence).map(([k,v])=>[k,[...v]])),reasons,score});
+    }
+    const alpha=(a,b)=>a.title.localeCompare(b.title,'en',{sensitivity:'base'})||a.id.localeCompare(b.id);
+    return out.sort((a,b)=>filters.sort==='title'||filters.sort==='az'?alpha(a,b):filters.sort==='duration'?(a.duration??Infinity)-(b.duration??Infinity)||alpha(a,b):b.score-a.score||alpha(a,b));
+  }
+  function counts(items) {return {total:items.length,layers:Object.fromEntries(Object.keys(C.layers).map(key=>[key,items.filter(x=>x.layer===key).length])),types:Object.fromEntries(Object.keys(types).map(key=>[key,items.filter(x=>x.type===key).length]))};}
+  return {audiences,types,index,search,counts,durationInfo};
+})();
+if(typeof module!=='undefined'){module.exports.Finder=LTCampaignFinder;module.exports.finder=LTCampaignFinder;}
