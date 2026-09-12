@@ -19,26 +19,24 @@ For a local web server, run `python3 -m http.server 8080 --directory dist` and o
 
 These counts describe different layers. They must not be added together or represented as finished campaign inventory. “Cataloged” means indexed, not authored or approved. This build does not claim that a title-only record has a complete manuscript.
 
-## Exactly ten requested website doors
+## Ten standalone ministry websites
 
-Domain names below are Brett’s requested labels, not claims of ownership or live deployment. The existing plural `40DayCampaigns.com` and alternate advisor names remain in source records; the requested current door is `40DayCampaign.com`.
+Each ministry has an independently deployable static site in `sites/<id>/`, with its own positioning, audience, home page, search experience, filters, resource pages, and purpose page. All ten sites are generated from the same source-preserving catalog, so fixes and source restrictions remain consistent across the network. The requested domain names are product labels until domain ownership is verified and DNS is connected.
 
-| Requested website | Local entry point | Catalog treatment |
+| Requested website | Standalone package | Catalog treatment |
 | --- | --- | --- |
-| SermonCurator.com | `dist/spokes/sermon/index.html` | Full catalog available for future sermon adaptation |
-| SmallGroupCurriculum.com | `dist/spokes/groups/index.html` | Full catalog available for future curriculum adaptation |
-| ChristianAdvisorNetwork.com | `dist/spokes/advisor/index.html` | Advisor practice and family journey keyword placements |
-| 40DayCampaign.com | `dist/spokes/church/index.html` | Every title-bearing source placement, including repeats |
-| FamilyLegacyMinistry.com | `dist/spokes/familyministry/index.html` | Family and legacy ministry keyword placements |
-| FinancialWisdomMinistry.com | `dist/spokes/finance/index.html` | Financial wisdom; Ron Blue / GOIA / MYM / Generous Living source terms prioritized |
-| FamilyLegacybyDesign.com | `dist/spokes/family/index.html` | Family legacy; Tom Conway / Foundation / Alignment / Clarity / Next Gen source terms prioritized |
-| FlourishingLifeTogetherSeries.com | `dist/spokes/flourishing/index.html` | Flourishing and whole-life source terms |
-| ChristianMarketplaceMinistry.com | `dist/spokes/workplace/index.html` | Marketplace, business, leadership, and workplace source terms |
-| DoingChurchTogether.com | `dist/spokes/doingchurch/index.html` | Full catalog as the church-facing umbrella |
+| SermonCurator.com | `sites/sermon/` | Campaigns, Catalytic Sundays, and teaching series for sermon planning |
+| SmallGroupCurriculum.com | `sites/groups/` | Group, discipleship, and curriculum source matches |
+| ChristianAdvisorNetwork.com | `sites/advisor/` | Advisor practice, stewardship, and legacy source matches |
+| 40DayCampaign.com | `sites/church/` | Full eligible campaign library, with explicit 40-day journeys prioritized |
+| FamilyLegacyMinistry.com | `sites/familyministry/` | Family, legacy, marriage, parenting, and generations source matches |
+| FinancialWisdomMinistry.com | `sites/finance/` | Financial wisdom, stewardship, generosity, and Ron Blue source matches |
+| FamilyLegacybyDesign.com | `sites/family/` | Family legacy, blessing, alignment, clarity, and next-generation source matches |
+| FlourishingLifeTogetherSeries.com | `sites/flourishing/` | Flourishing, whole-life, health, and resilience source matches |
+| ChristianMarketplaceMinistry.com | `sites/workplace/` | Marketplace, business, leadership, vocation, and workplace source matches |
+| DoingChurchTogether.com | `sites/doingchurch/` | Church health, leadership, groups, mission, and community source matches |
 
-To prepare an independently hostable single-file website for a separate repository, run `python3 scripts/export-spoke.py advisor /absolute/output/directory` (substitute any spoke ID from the entry-point table). The export includes the full private dataset, so source access must be approved before publication.
-
-The ten doors share the same data, source IDs, and UI. No content is copied into ten separately maintained catalogs. Each can later become an independent branded frontend. The present package contains ten entry pages, not ten remotely created GitHub repositories.
+Run `node scripts/build-network-sites.cjs` to regenerate every package and `node scripts/test-network-sites.cjs` to validate the network. `sites/manifest.json` records each deployment name, requested domain, record count, and catalog composition. Every site links back to the shared Campaign Builder and to the other nine ministries.
 
 ## Source integrity and holds
 
@@ -63,7 +61,7 @@ Brett explicitly authorized public upload and live publication on 2026-09-09. Th
 
 Repository: https://github.com/BRETTLIFETOGETHER/Lifetogether-master-library
 
-`dist/` is the static website. The ten branded doors share the master catalog; their requested custom domains have not been connected. Shopify configuration and checkout remain outside this catalog release.
+`dist/` is the master library. `sites/` contains the ten standalone website packages. Their requested custom domains have not been connected because ownership and DNS access have not been verified. Shopify configuration and checkout remain outside this catalog release.
 
 ## Deliberate scope boundary
 

@@ -1,0 +1,237 @@
+{
+  "generatedAt": "2026-09-12T01:01:38.707Z",
+  "sourceCatalogDate": "2026-09-09",
+  "sites": [
+    {
+      "id": "sermon",
+      "name": "Sermon Curator",
+      "requestedDomain": "SermonCurator.com",
+      "netlifyName": "lifetogether-sermon-curator",
+      "records": 7715,
+      "homeFeatured": 6,
+      "types": {
+        "campaign": 4199,
+        "catalytic": 2321,
+        "series": 1195
+      },
+      "durations": [
+        2,
+        7,
+        16,
+        20,
+        21,
+        24,
+        30,
+        40,
+        50,
+        52,
+        89,
+        90,
+        365
+      ]
+    },
+    {
+      "id": "groups",
+      "name": "Small Group Curriculum",
+      "requestedDomain": "SmallGroupCurriculum.com",
+      "netlifyName": "lifetogether-small-group-curriculum",
+      "records": 2714,
+      "homeFeatured": 6,
+      "types": {
+        "campaign": 1864,
+        "catalytic": 125,
+        "series": 725
+      },
+      "durations": [
+        10,
+        21,
+        30,
+        40
+      ]
+    },
+    {
+      "id": "advisor",
+      "name": "Christian Advisor Network",
+      "requestedDomain": "ChristianAdvisorNetwork.com",
+      "netlifyName": "lifetogether-christian-advisor-network",
+      "records": 2286,
+      "homeFeatured": 6,
+      "types": {
+        "campaign": 2015,
+        "catalytic": 42,
+        "series": 229
+      },
+      "durations": [
+        5,
+        7,
+        10,
+        21,
+        30,
+        40
+      ]
+    },
+    {
+      "id": "church",
+      "name": "40 Day Campaign",
+      "requestedDomain": "40DayCampaign.com",
+      "netlifyName": "lifetogether-40-day-campaign",
+      "records": 20605,
+      "homeFeatured": 6,
+      "types": {
+        "campaign": 16226,
+        "catalytic": 2356,
+        "series": 2023
+      },
+      "durations": [
+        2,
+        5,
+        7,
+        10,
+        16,
+        20,
+        21,
+        24,
+        30,
+        40,
+        50,
+        52,
+        89,
+        90,
+        365
+      ]
+    },
+    {
+      "id": "familyministry",
+      "name": "Family Legacy Ministry",
+      "requestedDomain": "FamilyLegacyMinistry.com",
+      "netlifyName": "lifetogether-family-legacy-ministry",
+      "records": 6438,
+      "homeFeatured": 6,
+      "types": {
+        "campaign": 5762,
+        "catalytic": 401,
+        "series": 275
+      },
+      "durations": [
+        5,
+        7,
+        10,
+        21,
+        30,
+        40,
+        90,
+        365
+      ]
+    },
+    {
+      "id": "finance",
+      "name": "Financial Wisdom Ministry",
+      "requestedDomain": "FinancialWisdomMinistry.com",
+      "netlifyName": "lifetogether-financial-wisdom-ministry",
+      "records": 2823,
+      "homeFeatured": 6,
+      "types": {
+        "campaign": 2492,
+        "catalytic": 140,
+        "series": 191
+      },
+      "durations": [
+        7,
+        21,
+        30,
+        40,
+        90
+      ]
+    },
+    {
+      "id": "family",
+      "name": "Family Legacy by Design",
+      "requestedDomain": "FamilyLegacybyDesign.com",
+      "netlifyName": "lifetogether-family-legacy-by-design",
+      "records": 3805,
+      "homeFeatured": 6,
+      "types": {
+        "campaign": 3443,
+        "catalytic": 151,
+        "series": 211
+      },
+      "durations": [
+        5,
+        7,
+        10,
+        21,
+        30,
+        40,
+        90,
+        365
+      ]
+    },
+    {
+      "id": "flourishing",
+      "name": "Flourishing Life Together",
+      "requestedDomain": "FlourishingLifeTogetherSeries.com",
+      "netlifyName": "lifetogether-flourishing-life-series",
+      "records": 659,
+      "homeFeatured": 6,
+      "types": {
+        "campaign": 601,
+        "catalytic": 11,
+        "series": 47
+      },
+      "durations": [
+        7,
+        21,
+        30,
+        40
+      ]
+    },
+    {
+      "id": "workplace",
+      "name": "Christian Marketplace Ministry",
+      "requestedDomain": "ChristianMarketplaceMinistry.com",
+      "netlifyName": "lifetogether-christian-marketplace",
+      "records": 1521,
+      "homeFeatured": 6,
+      "types": {
+        "campaign": 1412,
+        "catalytic": 51,
+        "series": 58
+      },
+      "durations": [
+        10,
+        21,
+        30,
+        40,
+        90
+      ]
+    },
+    {
+      "id": "doingchurch",
+      "name": "Doing Church Together",
+      "requestedDomain": "DoingChurchTogether.com",
+      "netlifyName": "lifetogether-doing-church-together",
+      "records": 8304,
+      "homeFeatured": 6,
+      "types": {
+        "campaign": 6178,
+        "catalytic": 853,
+        "series": 1273
+      },
+      "durations": [
+        2,
+        7,
+        10,
+        16,
+        20,
+        21,
+        24,
+        30,
+        40,
+        50,
+        89,
+        90,
+        365
+      ]
+    }
+  ]
+}
