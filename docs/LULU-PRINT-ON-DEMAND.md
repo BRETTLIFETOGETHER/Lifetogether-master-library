@@ -24,3 +24,16 @@ Cost estimates and shipping options work after credentials are configured. Order
 Each print edition needs a durable public HTTPS URL for a multipage interior PDF and a single-page cover spread PDF, plus the Lulu POD package ID and page count. Before switching `LULU_API_ENVIRONMENT` to `production`, approve a physical proof, configure Lulu account billing, complete checkout and tax decisions, restrict order creation to authorized staff, and verify order status and tracking behavior end to end.
 
 The production switch can cause real charges. Keep `LULU_ENABLE_ORDERS=false` until those checks are complete.
+
+
+## Guided print studio (September 2026)
+
+The studio separates book preparation, delivery estimates, and order tracking. A 6 × 9 paperback preset avoids requiring a format code; custom Lulu codes remain available. Draft books can be saved before PDFs are ready. File-link checks validate HTTPS syntax and offer preview links; they do not claim to inspect or approve PDF contents.
+
+Shipping and quote requests preserve form inputs. Delivery details live only in page memory and never enter localStorage or downloaded estimates. Changing address, quantity, or shipping invalidates the previous quote. Order submission uses the exact quoted payload, requires a final review confirmation, locks duplicate clicks, and consumes the quote before submission. On an ambiguous failure, check the Lulu dashboard before requesting another order.
+
+Without configured Lulu credentials, the interface provides an administrator setup panel, a connection recheck, and a downloadable checklist. It does not fabricate prices or orders. A configured health response confirms environment settings, not successful OAuth; a quote tests the actual service connection. Sandbox jobs do not create physical proofs.
+
+### Verification
+
+`node scripts/test-lulu.cjs` validates server payloads. `node scripts/test-lulu-ui.cjs` uses Playwright and a local server on port 8765. The browser test mocks Lulu responses and verifies saving, editing, exports, file links, shipping, errors, quote invalidation, duplicate submission prevention, tracking, missing credentials, and mobile layout. No real Lulu orders are placed by the test. Set `CHROME_PATH` if Chrome is installed elsewhere.

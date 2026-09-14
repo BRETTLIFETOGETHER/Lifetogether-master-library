@@ -738,33 +738,277 @@ window.addEventListener('beforeunload',e=>{if(wsDirty){e.preventDefault();e.retu
 
 window.addEventListener('resize',wsPrefs);
 
- const luluKey='lifetogether-lulu-studio-v1';
-let luluState={schema:'lifetogether-lulu-studio-v1',editions:[],jobs:[]},luluHealth=null,luluBusy='',luluMessage='',luluQuote=null,luluShipping=[];
-try{const saved=JSON.parse(localStorage.getItem(luluKey)||'null');if(saved?.schema===luluState.schema&&Array.isArray(saved.editions)&&Array.isArray(saved.jobs))luluState={...luluState,editions:saved.editions.slice(0,100),jobs:saved.jobs.slice(0,50)}}catch{}
-function luluPersist(){localStorage.setItem(luluKey,JSON.stringify(luluState));}
-const luluMoney=(value,currency='USD')=>{const n=Number(value);return Number.isFinite(n)?new Intl.NumberFormat('en-US',{style:'currency',currency}).format(n):'—'};
-const luluStatusLabel=value=>({draft:'Draft specification',files:'Files ready',proof:'Proof approved',live:'Available to fulfill'}[value]||'Draft specification');
-async function luluRequest(action,options={}){const query=new URLSearchParams({action});for(const [key,value] of Object.entries(options.params||{}))query.set(key,value);const result=await fetch('/.netlify/functions/lulu?'+query,{method:options.body?'POST':'GET',headers:options.body?{'content-type':'application/json'}:{},body:options.body?JSON.stringify(options.body):undefined});const data=await result.json().catch(()=>({error:'The print service returned an unreadable response.'}));if(!result.ok)throw Error(data.error||'The print service could not complete this request.');return data;}
-async function luluConnect(){if(luluBusy==='connect')return;luluBusy='connect';try{luluHealth=await luluRequest('health')}catch(err){luluHealth={configured:false,environment:'unavailable',orders_enabled:false};luluMessage=err.message}finally{luluBusy='';if(currentRoute()[0]==='print-studio')render();}}
-function luluReadiness(edition){return [edition.title&&edition.subtitle!==undefined,edition.pod_package_id&&edition.page_count,edition.interior_url,edition.cover_url,edition.status==='proof'||edition.status==='live'].filter(Boolean).length;}
-function luluField(name,label,value='',options={}){const id='lulu-'+name,attrs=`id="${id}" name="${name}" ${options.required?'required ':''}${options.min?`min="${options.min}" `:''}${options.max?`max="${options.max}" `:''}${options.step?`step="${options.step}" `:''}${options.maxlength?`maxlength="${options.maxlength}" `:''}`;const input=options.options?`<select ${attrs}>${options.options.map(([v,l])=>`<option value="${E(v)}" ${String(v)===String(value)?'selected':''}>${E(l)}</option>`).join('')}</select>`:options.area?`<textarea ${attrs} rows="${options.rows||3}">${E(value)}</textarea>`:`<input ${attrs} type="${options.type||'text'}" value="${E(value)}" ${options.placeholder?`placeholder="${E(options.placeholder)}"`:''}>`;return `<label class="field ${options.full?'full':''}"><span>${E(label)}</span>${input}${options.help?`<small>${E(options.help)}</small>`:''}</label>`;}
-function luluConnectionCard(){const h=luluHealth;if(!h)return `<section class="pod-connection"><span class="pod-dot waiting"></span><div><strong>Checking Lulu connection…</strong><p>The studio is loading the server-side connection status.</p></div></section>`;const ready=h.configured;return `<section class="pod-connection ${ready?'ready':'needs-setup'}"><span class="pod-dot"></span><div><strong>${ready?`Lulu ${E(h.environment)} is connected`:'Connect Lulu credentials in Netlify'}</strong><p>${ready?`${h.orders_enabled?'Order creation is enabled.':'Cost and shipping tools are ready; order creation remains safely disabled.'}`:'The interface and secure server function are installed. Add the sandbox client key and secret to begin live testing.'}</p></div><span class="badge">${E(h.environment||'not configured')}</span></section>`;}
-function luluEditionCard(edition){const ready=luluReadiness(edition);return `<article class="pod-edition"><div class="pod-book"><small>${E(edition.record_id||'LIFETOGETHER EDITION')}</small><strong>${E(edition.title)}</strong><span>${E(edition.subtitle||'Subtitle to add')}</span></div><div><span class="eyebrow">${E(luluStatusLabel(edition.status))}</span><h2>${E(edition.title)}</h2><p>${E(edition.pod_package_id||'Lulu format to choose')} · ${E(edition.page_count||'—')} pages · ${luluMoney(edition.retail_price,edition.currency)}</p><div class="pod-meter"><i style="width:${ready*20}%"></i></div><p class="small">${ready}/5 production checks complete</p><div class="toolbar"><a class="btn primary" href="#/print-studio?fulfill=${q(edition.id)}">Estimate & fulfill</a><a class="btn" href="#/print-studio?edit=${q(edition.id)}">Edit edition</a><button class="btn flat" data-lulu="remove-edition" data-id="${E(edition.id)}">Remove</button></div></div></article>`;}
-function luluEditionForm(edition){return `<section class="pod-panel"><div class="ws-section-title"><div><span class="eyebrow">PRINT EDITION</span><h2>${edition.id?'Edit this edition':'Prepare a new edition'}</h2></div><a class="small" href="#/print-studio">Close editor</a></div><form id="lulu-edition"><input type="hidden" name="edition_id" value="${E(edition.id||'')}"><div class="formgrid">${luluField('record_id','Master-library record ID',edition.record_id||'',{placeholder:'M-00001',maxlength:100,help:'Optional. Keeps this print edition linked to its source record.'})}${luluField('title','Printed title',edition.title||'',{required:true,maxlength:200})}${luluField('subtitle','Printed subtitle',edition.subtitle||'',{maxlength:300,full:true})}${luluField('pod_package_id','Lulu pod package ID',edition.pod_package_id||'0600X0900BWSTDPB060UW444MXX',{required:true,maxlength:40,help:'Example: 6 × 9, black-and-white, paperback, white paper, matte.'})}${luluField('page_count','Interior page count',edition.page_count||120,{required:true,type:'number',min:1,max:3000})}${luluField('retail_price','Retail price',edition.retail_price||'19.99',{required:true,type:'number',min:0,step:'0.01'})}${luluField('currency','Currency',edition.currency||'USD',{options:[['USD','USD — US dollar'],['CAD','CAD — Canadian dollar'],['GBP','GBP — British pound'],['EUR','EUR — euro'],['AUD','AUD — Australian dollar']]})}${luluField('interior_url','Public interior PDF URL',edition.interior_url||'',{type:'url',maxlength:2000,full:true,help:'One downloadable multipage PDF; URL must remain available to Lulu.'})}${luluField('cover_url','Public cover PDF URL',edition.cover_url||'',{type:'url',maxlength:2000,full:true,help:'One downloadable single-page spread containing back, spine, and front.'})}${luluField('status','Production status',edition.status||'draft',{options:[['draft','Draft specification'],['files','Files ready for Lulu validation'],['proof','Printed proof approved'],['live','Available to fulfill']]})}${luluField('notes','Production notes',edition.notes||'',{area:true,full:true,rows:3,maxlength:2000})}</div><div class="formactions"><button class="btn primary" type="submit">Save print edition</button></div></form></section>`;}
-function luluAddressFields(){return `${luluField('name','Recipient name','',{required:true,maxlength:120})}${luluField('organization','Organization','',{maxlength:120})}${luluField('street1','Street address','',{required:true,maxlength:160,full:true})}${luluField('street2','Suite or address line 2','',{maxlength:160,full:true})}${luluField('city','City','',{required:true,maxlength:100})}${luluField('state_code','State / province code','',{maxlength:10,placeholder:'CA'})}${luluField('postcode','Postal code','',{required:true,maxlength:24})}${luluField('country_code','Country code','US',{required:true,maxlength:2,placeholder:'US'})}${luluField('phone_number','Recipient phone','',{required:true,type:'tel',maxlength:24})}${luluField('email','Recipient email','',{type:'email',maxlength:254})}`;}
-function luluFulfillment(edition){return `<section class="pod-fulfill"><a class="back" href="#/print-studio">← All print editions</a><div class="pod-fulfill-head"><div><span class="eyebrow">LULU FULFILLMENT</span><h1>${E(edition.title)}</h1><p>${E(edition.subtitle||'')}</p></div><div><strong>${luluMoney(edition.retail_price,edition.currency)}</strong><small>Configured retail price</small></div></div><div class="pod-columns"><form id="lulu-quote" class="pod-panel"><input type="hidden" name="edition_id" value="${E(edition.id)}"><h2>Delivery estimate</h2><p>Lulu uses the delivery address to calculate printing, shipping, tax, and address suggestions. This address is sent to Lulu for the request and is not saved in your browser.</p><div class="formgrid">${luluField('quantity','Copies',1,{required:true,type:'number',min:1,max:10000})}${luluField('shipping_option','Shipping level','MAIL',{options:[['MAIL','Mail'],['PRIORITY_MAIL','Priority mail'],['GROUND','Ground'],['EXPEDITED','Expedited'],['EXPRESS','Express']]})}${luluAddressFields()}</div><div class="formactions"><button type="button" class="btn" data-lulu="shipping-options">Check available shipping</button><button class="btn primary" type="submit">Calculate delivered cost</button></div>${luluShipping.length?`<div class="pod-options"><strong>Available from Lulu</strong>${luluShipping.map(x=>`<span>${E(x.level||x.shipping_level||x.name||'Shipping')} ${x.cost?`· ${luluMoney(x.cost,edition.currency)}`:''}</span>`).join('')}</div>`:''}</form><aside class="pod-panel pod-summary"><span class="eyebrow">ORDER REVIEW</span>${luluQuote?luluQuoteView(edition):`<h2>Estimate before ordering.</h2><p>Choose a destination and calculate the live cost. The estimate will include Lulu’s print cost, fulfillment fee, shipping, and applicable tax.</p><ol><li>Confirm files and format</li><li>Calculate the delivered cost</li><li>Collect customer payment in your checkout</li><li>Create the Lulu print job</li><li>Track production and shipment</li></ol>`}</aside></div></section>`;}
-function luluQuoteView(edition){const x=luluQuote,currency=x.currency||edition.currency,total=x.total_cost_incl_tax||x.total_cost_excl_tax,margin=Number(edition.retail_price)*Number(x._quantity||1)-Number(total||0);return `<h2>${luluMoney(total,currency)} delivered</h2><dl class="pod-costs"><div><dt>Print</dt><dd>${luluMoney((x.line_item_costs||[]).reduce((n,i)=>n+Number(i.total_cost_incl_tax||i.total_cost_excl_tax||0),0),currency)}</dd></div><div><dt>Shipping</dt><dd>${luluMoney(x.shipping_cost?.total_cost_incl_tax||x.shipping_cost?.total_cost_excl_tax,currency)}</dd></div><div><dt>Tax</dt><dd>${luluMoney(x.total_tax,currency)}</dd></div><div><dt>Margin at configured retail</dt><dd class="${margin<0?'negative':''}">${luluMoney(margin,currency)}</dd></div></dl>${x.warnings?.length?`<div class="notice"><strong>Address review</strong><p>${E(x.warnings.map(w=>w.message||w).join(' '))}</p></div>`:''}<p class="small">Cost estimates can change. Collect payment through your checkout before creating a production order.</p><div class="formgrid">${luluField('contact_email','Order contact email','',{type:'email',maxlength:254})}${luluField('external_id','Your order reference',`LT-${Date.now()}`,{maxlength:100})}</div><button class="btn primary" data-lulu="create-order" ${luluHealth?.orders_enabled?'':'disabled'}>${luluHealth?.orders_enabled?'Create Lulu print job':'Production orders are disabled'}</button><p class="small">${luluHealth?.environment==='sandbox'?'Sandbox orders never print or ship.':'Production orders may charge the payment method saved in Lulu.'}</p>`;}
-function luluJobs(){return luluState.jobs.length?`<section class="pod-panel"><div class="ws-section-title"><div><span class="eyebrow">FULFILLMENT HISTORY</span><h2>Recent Lulu jobs</h2></div></div>${luluState.jobs.map(job=>`<div class="pod-job"><div><strong>${E(job.title)}</strong><p>${E(job.id)} · ${E(job.status||'submitted')}</p></div><button class="btn small" data-lulu="refresh-job" data-id="${E(job.id)}">Refresh status</button></div>`).join('')}</section>`:'';}
-function luluPage(){const p=params(),record=byId.get(p.get('record')),edit=luluState.editions.find(x=>x.id===p.get('edit')),fulfill=luluState.editions.find(x=>x.id===p.get('fulfill'));if(!luluHealth&&!luluBusy)setTimeout(luluConnect,0);if(fulfill){shell(luluConnectionCard()+luluFulfillment(fulfill)+luluJobs(),'print-studio','Print on demand');return;}const seed=edit||record?{...(edit||{}),record_id:edit?.record_id||record?.['Master ID']||'',title:edit?.title||record?.['Campaign Title']||'',subtitle:edit?.subtitle||record?.Subtitle||''}:{id:'',record_id:'',title:'',subtitle:''};shell(heading('Print-on-demand studio','Prepare source-linked print editions, calculate real Lulu fulfillment costs, and track every submitted job.',`<a class="btn primary" href="#/print-studio?edit=new">New print edition</a>`)+luluConnectionCard()+(luluMessage?`<div class="notice" role="status">${E(luluMessage)}</div>`:'')+`<section class="pod-intro"><div><span class="eyebrow">FROM MANUSCRIPT TO MAILBOX</span><h2>A careful path to print.</h2></div><ol><li><strong>Prepare</strong><span>Choose format, pages, and retail price.</span></li><li><strong>Validate</strong><span>Attach downloadable interior and cover PDFs.</span></li><li><strong>Proof</strong><span>Order and approve a physical sandbox or production proof.</span></li><li><strong>Fulfill</strong><span>Quote, submit, and track each print job.</span></li></ol></section>`+((p.has('edit')||record)?luluEditionForm(seed):'')+`<div class="ws-section-title pod-library-title"><div><span class="eyebrow">YOUR PRINT CATALOG</span><h2>${luluState.editions.length?`${luluState.editions.length} prepared edition${luluState.editions.length===1?'':'s'}`:'Prepare the first print edition'}</h2></div></div>`+(luluState.editions.length?`<div class="pod-editions">${luluState.editions.map(luluEditionCard).join('')}</div>`:`<div class="empty"><h2>Turn an approved resource into a real book.</h2><p>Start from a master-library record or create an edition, then add Lulu’s format code and the two print-ready PDF links.</p><a class="btn primary" href="#/print-studio?edit=new">Prepare an edition</a></div>`)+luluJobs()+`<section class="pod-panel pod-setup"><h2>Before production orders</h2><div><p><strong>1. Lulu sandbox account</strong><br>Add sandbox client credentials in Netlify and test pricing, files, and status changes.</p><p><strong>2. Public print files</strong><br>Host a multipage interior PDF and one-piece cover PDF at durable HTTPS URLs Lulu can download.</p><p><strong>3. Payment and tax</strong><br>Collect the buyer’s payment in your checkout. Lulu charges your account for printing, fulfillment, shipping, and tax.</p><p><strong>4. Proof approval</strong><br>Approve a physical proof, then explicitly enable production order creation in Netlify.</p></div></section>`,'print-studio','Print on demand');}
-function luluFormPayload(form,edition){const f=Object.fromEntries(new FormData(form)),address={name:f.name,organization:f.organization,street1:f.street1,street2:f.street2,city:f.city,state_code:f.state_code,postcode:f.postcode,country_code:f.country_code,phone_number:f.phone_number,email:f.email,is_business:false};return {currency:edition.currency,line_item:{title:edition.title,pod_package_id:edition.pod_package_id,page_count:Number(edition.page_count),quantity:Number(f.quantity),cover_url:edition.cover_url,interior_url:edition.interior_url,external_id:`${edition.id}-${Date.now()}`},shipping_address:address,shipping_option:f.shipping_option,contact_email:f.contact_email,external_id:f.external_id};}
-function luluSubmit(e){const form=e.target;if(!form?.id?.startsWith('lulu-'))return false;e.preventDefault();(async()=>{try{luluBusy=form.id;luluMessage='';if(form.id==='lulu-edition'){const f=Object.fromEntries(new FormData(form)),record=byId.get(String(f.record_id).trim()),current=luluState.editions.find(x=>x.id===f.edition_id),edition={id:current?.id||CB.id(),record_id:String(f.record_id||'').trim().slice(0,100),title:String(f.title||record?.['Campaign Title']||'').trim().slice(0,200),subtitle:String(f.subtitle||record?.Subtitle||'').trim().slice(0,300),pod_package_id:String(f.pod_package_id||'').trim().toUpperCase().slice(0,40),page_count:Math.min(3000,Math.max(1,Number(f.page_count)||1)),retail_price:Math.max(0,Number(f.retail_price)||0).toFixed(2),currency:f.currency,status:f.status,interior_url:String(f.interior_url||'').trim().slice(0,2000),cover_url:String(f.cover_url||'').trim().slice(0,2000),notes:String(f.notes||'').trim().slice(0,2000),updated_at:new Date().toISOString()};if(!edition.title)throw Error('Add the printed title.');if(!/^[A-Z0-9]{20,40}$/.test(edition.pod_package_id))throw Error('Add a valid Lulu pod package ID.');if(current)luluState.editions[luluState.editions.indexOf(current)]=edition;else luluState.editions.unshift(edition);luluPersist();luluMessage='Print edition saved on this device.';nav('print-studio');return;}if(form.id==='lulu-quote'){const edition=luluState.editions.find(x=>x.id===new FormData(form).get('edition_id'));if(!edition)throw Error('Choose a saved print edition.');const payload=luluFormPayload(form,edition);luluQuote=await luluRequest('quote',{body:payload});luluQuote._quantity=payload.line_item.quantity;luluQuote._payload=payload;luluMessage='Live Lulu cost calculated.';render();}}catch(err){luluMessage=err.message;render();}finally{luluBusy='';}})();return true;}
-function luluClick(e){const el=e.target.closest?.('[data-lulu]');if(!el)return false;e.preventDefault();(async()=>{try{const action=el.dataset.lulu;luluMessage='';if(action==='remove-edition'){if(!confirm('Remove this print edition from this browser? Lulu jobs and source records are unchanged.'))return;luluState.editions=luluState.editions.filter(x=>x.id!==el.dataset.id);luluPersist();render();return;}if(action==='shipping-options'){const form=$('#lulu-quote'),edition=luluState.editions.find(x=>x.id===new FormData(form).get('edition_id')),payload=luluFormPayload(form,edition);luluShipping=await luluRequest('shipping-options',{body:{country:payload.shipping_address.country_code,currency:payload.currency,line_item:payload.line_item}});if(!Array.isArray(luluShipping))luluShipping=luluShipping.results||luluShipping.shipping_options||[];luluMessage='Available Lulu shipping options loaded.';render();return;}if(action==='create-order'){if(!luluQuote?._payload)throw Error('Calculate the delivered cost again before creating an order.');if(!confirm(`${luluHealth?.environment==='production'?'This may charge the payment method saved in Lulu. ':'This will create a Lulu sandbox job. '}Create this print job now?`))return;const form=$('#lulu-quote'),edition=luluState.editions.find(x=>x.id===new FormData(form).get('edition_id')),payload=luluFormPayload(form,edition);payload.contact_email=$('#lulu-contact_email')?.value||payload.contact_email;payload.external_id=$('#lulu-external_id')?.value||payload.external_id;const job=await luluRequest('create-order',{body:payload}),id=String(job.id||job.print_job_id||'');if(!id)throw Error('Lulu accepted the request but did not return a print-job ID.');luluState.jobs.unshift({id,title:edition.title,status:job.status?.name||job.status||'submitted',created_at:new Date().toISOString()});luluState.jobs=luluState.jobs.slice(0,50);luluPersist();luluMessage=`Lulu print job ${id} created.`;luluQuote=null;nav('print-studio');return;}if(action==='refresh-job'){const job=luluState.jobs.find(x=>x.id===el.dataset.id),data=await luluRequest('status',{params:{id:el.dataset.id}});if(job){job.status=data.status?.name||data.status||'updated';job.tracking=(data.line_items||[]).flatMap(x=>x.tracking_urls||[]).slice(0,5);job.updated_at=new Date().toISOString();luluPersist();}luluMessage=`Lulu job ${el.dataset.id} status updated.`;render();return;}}catch(err){luluMessage=err.message;render();}})();return true;}
-function luluChange(){return false;}
-const luluClickUnsafe=luluClick;luluClick=e=>e.target.closest?.('[data-lulu]')?.dataset?.lulu?luluClickUnsafe(e):false;
-function luluDecorate(){const r=currentRoute(),brief=document.querySelector('[data-record-brief]');if(r[0]==='record'&&brief&&!brief.disabled&&!document.querySelector('.pod-record-link')){const a=document.createElement('a');a.className='btn pod-record-link';a.href='#/print-studio?record='+encodeURIComponent(r[1]||'');a.textContent='Prepare a print edition';brief.after(a);}if(r[0]==='ecosystem'&&params().get('spoke')==='doingchurch'){const panel=document.querySelector('.spoke-detail');if(panel&&!panel.querySelector('.pod-spoke-link')){const a=document.createElement('a');a.className='btn pod-spoke-link';a.href='#/print-studio';a.textContent='Open print-on-demand studio';panel.append(a);}}}
+ const luluKey = 'lifetogether-lulu-studio-v1';
+const luluDefaultFormat = '0600X0900BWSTDPB060UW444MXX';
+let luluState = {schema:luluKey, editions:[], jobs:[]};
+let luluHealth = null, luluBusy = '', luluMessage = '', luluError = false;
+let luluQuote = null, luluShipping = [], luluActiveEdition = '', luluDelivery = {}, luluDrafts = {};
+try {
+  const saved = JSON.parse(localStorage.getItem(luluKey) || 'null');
+  if (saved?.schema === luluKey && Array.isArray(saved.editions) && Array.isArray(saved.jobs))
+    luluState = {...luluState, editions:saved.editions.slice(0,100), jobs:saved.jobs.slice(0,50)};
+} catch {}
+function luluPersist() { localStorage.setItem(luluKey, JSON.stringify(luluState)); }
+function luluMoney(value, currency='USD') {
+  if (value === undefined || value === null || value === '' || !Number.isFinite(Number(value))) return '—';
+  try { return new Intl.NumberFormat('en-US',{style:'currency',currency}).format(Number(value)); } catch { return '—'; }
+}
+const luluStatusLabel = value => ({draft:'Draft',files:'Files prepared',proof:'Physical proof approved',live:'Ready to fulfill'}[value] || 'Draft');
+function luluPublicURL(value) {
+  try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password ? u.href : ''; } catch { return ''; }
+}
+function luluChecks(edition) {
+  return [
+    ['Title added', Boolean(edition.title?.trim())],
+    ['Book format and page count set', /^[A-Z0-9]{20,40}$/.test(edition.pod_package_id || '') && Number(edition.page_count) > 0],
+    ['Interior PDF link added', Boolean(luluPublicURL(edition.interior_url))],
+    ['Cover PDF link added', Boolean(luluPublicURL(edition.cover_url))],
+    ['Physical proof approved', ['proof','live'].includes(edition.status)]
+  ];
+}
+function luluFormatLabel(edition) { return edition.pod_package_id === luluDefaultFormat ? '6 × 9 in · Paperback · Black & white' : 'Custom Lulu format'; }
+async function luluRequest(action, options={}) {
+  const query = new URLSearchParams({action});
+  Object.entries(options.params || {}).forEach(([k,v]) => query.set(k,v));
+  const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 45000);
+  try {
+    const result = await fetch('/.netlify/functions/lulu?' + query, {method:options.body?'POST':'GET', headers:options.body?{'content-type':'application/json'}:{}, body:options.body?JSON.stringify(options.body):undefined, signal:controller.signal});
+    const data = await result.json().catch(() => ({error:'The print service could not be reached. Check the connection and try again.'}));
+    if (!result.ok) throw Error(data.error || 'The print service could not complete this request. Try again.');
+    return data;
+  } catch (error) {
+    if (error.name === 'AbortError') throw Error('Lulu took too long to respond. For an order, check your Lulu dashboard before trying again to avoid ordering twice.');
+    throw error;
+  } finally { clearTimeout(timeout); }
+}
+function luluNotice() { return `<div id="lulu-notice" class="pod-feedback ${luluError?'is-error':''}" role="${luluError?'alert':'status'}" aria-live="polite" ${luluMessage?'':'hidden'}>${E(luluMessage)}</div>`; }
+function luluNotify(message, error=false) {
+  luluMessage = message; luluError = error;
+  const box = $('#lulu-notice');
+  if (box) { box.textContent = message; box.hidden = !message; box.classList.toggle('is-error',error); box.setAttribute('role',error?'alert':'status'); if(error) box.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+}
+function luluSetBusy(value) {
+  luluBusy = value;
+  document.querySelectorAll('[data-lulu], #lulu-edition button, #lulu-quote button').forEach(el => {
+    if (value) { el.dataset.wasDisabled = String(el.disabled); el.disabled = true; }
+    else { el.disabled = el.dataset.wasDisabled === 'true'; delete el.dataset.wasDisabled; }
+  });
+  const region = $('#lulu-workspace'); if (region) region.setAttribute('aria-busy', String(Boolean(value)));
+}
+async function luluConnect() {
+  if (luluBusy) return;
+  luluSetBusy('connect');
+  try { luluHealth = await luluRequest('health'); luluNotify(luluHealth.configured?'Lulu settings found. Calculate an estimate to test the connection.':'Your studio is ready. A site administrator needs to connect Lulu before live estimates or orders are available.'); }
+  catch (err) { luluHealth = {configured:false,environment:'unavailable',orders_enabled:false}; luluNotify(err.message,true); }
+  finally { luluSetBusy(''); if (currentRoute()[0] === 'print-studio') render(); }
+}
+function luluField(name,label,value='',options={}) {
+  const id = 'lulu-' + name;
+  const attrs = `id="${id}" name="${name}" ${options.required?'required ':''}${options.min!=null?`min="${options.min}" `:''}${options.max!=null?`max="${options.max}" `:''}${options.step?`step="${options.step}" `:''}${options.maxlength?`maxlength="${options.maxlength}" `:''}${options.help?`aria-describedby="${id}-help"`:''}`;
+  const input = options.options ? `<select ${attrs}>${options.options.map(([v,l])=>`<option value="${E(v)}" ${String(v)===String(value)?'selected':''}>${E(l)}</option>`).join('')}</select>` : options.area ? `<textarea ${attrs} rows="${options.rows||3}">${E(value)}</textarea>` : `<input ${attrs} type="${options.type||'text'}" value="${E(value)}" ${options.placeholder?`placeholder="${E(options.placeholder)}"`:''}>`;
+  return `<label class="field ${options.full?'full':''}"><span>${E(label)}</span>${input}${options.help?`<small id="${id}-help">${E(options.help)}</small>`:''}</label>`;
+}
+function luluSetup() {
+  return `<details class="pod-panel pod-setup" id="lulu-setup"><summary>Connect Lulu · administrator setup</summary><p>You can prepare and save editions now. A site administrator completes these steps once to unlock live pricing and ordering.</p><ol><li>Create a Lulu API account and start in the sandbox test environment.</li><li>In Netlify, add <code>LULU_CLIENT_KEY</code>, <code>LULU_CLIENT_SECRET</code>, <code>LULU_API_ENVIRONMENT=sandbox</code>, and <code>LULU_CONTACT_EMAIL</code> as server environment variables. Keep <code>LULU_ENABLE_ORDERS=false</code> during setup.</li><li>Redeploy this site, then select <strong>Check connection</strong>. Test a quote before enabling sandbox orders.</li><li>Before production, configure account billing, staff access, and customer checkout. Approve a physical proof. Only then enable production orders.</li></ol><div class="toolbar"><a class="btn" href="https://developers.lulu.com/" target="_blank" rel="noopener noreferrer">Open Lulu developer portal ↗</a><a class="btn" href="https://app.netlify.com/projects/lifetogethermasterlibary/configuration/env" target="_blank" rel="noopener noreferrer">Open Netlify settings ↗</a><button class="btn" data-lulu="connect">Check connection</button><button class="btn flat" data-lulu="download-setup">Download setup checklist</button></div><p class="small">Keep API secrets in Netlify. This studio never asks you to paste them into a browser form.</p></details>`;
+}
+function luluConnectionCard() {
+  const h = luluHealth;
+  return `<section class="pod-connection ${h?.configured?'ready':'needs-setup'}"><span class="pod-dot ${h?'':'waiting'}"></span><div><strong>${!h?'Checking print service…':h.configured?(h.environment==='production'?'Lulu production settings found':'Lulu test environment configured'):'Prepare now. Connect Lulu when you’re ready.'}</strong><p>${!h?'Your editions will appear below.':h.configured?(h.orders_enabled?'Live estimates and order submission are enabled.':'Live estimates are available. Order submission is turned off.'):'Save book details and print files below. Live estimates and orders need your Lulu account.'}</p></div><button class="btn small" data-lulu="${h?.configured?'connect':'setup'}">${h?.configured?'Check connection':'Set up Lulu'}</button></section>`;
+}
+function luluEditionCard(edition) {
+  const checks = luluChecks(edition), ready = checks.filter(x=>x[1]).length;
+  return `<article class="pod-edition"><div class="pod-book" aria-hidden="true"><small>LIFETOGETHER EDITION</small><strong>${E(edition.title)}</strong><span>${E(edition.subtitle||'')}</span></div><div><span class="eyebrow">${E(luluStatusLabel(edition.status))}</span><h2>${E(edition.title)}</h2><p>${E(luluFormatLabel(edition))} · ${E(edition.page_count)} pages</p><div class="pod-meter" aria-hidden="true"><i style="width:${ready*20}%"></i></div><p class="small">${ready} of 5 preparation steps complete · Saved on this device</p><div class="toolbar"><a class="btn primary" href="#/print-studio?fulfill=${q(edition.id)}">Get a print estimate</a><a class="btn" href="#/print-studio?edit=${q(edition.id)}">Edit book</a><button class="btn flat" data-lulu="export-edition" data-id="${E(edition.id)}">Download details</button><button class="btn flat" data-lulu="remove-edition" data-id="${E(edition.id)}" aria-label="Remove ${E(edition.title)}">Remove</button></div></div></article>`;
+}
+function luluEditionForm(edition) {
+  const draftKey = edition.id || 'new', d = {...edition,...luluDrafts[draftKey]};
+  return `<section class="pod-panel"><div class="ws-section-title"><div><span class="eyebrow">YOUR PRINT EDITION</span><h2>${edition.id?'Edit your book':'Let’s prepare your book.'}</h2><p>Save a draft at any time. You can add the PDFs later.</p></div><a class="btn flat" href="#/print-studio">Back to my books</a></div><form id="lulu-edition" data-draft="${E(draftKey)}"><input type="hidden" name="edition_id" value="${E(edition.id||'')}"><fieldset class="pod-step"><legend><b>1</b> Name your book</legend><div class="formgrid">${luluField('title','Book title',d.title||'',{required:true,maxlength:200,full:true,placeholder:'e.g. Doing Life Together'})}${luluField('subtitle','Subtitle (optional)',d.subtitle||'',{maxlength:300,full:true})}</div></fieldset><fieldset class="pod-step"><legend><b>2</b> Choose the print format</legend><div class="formgrid">${luluField('format','Book format',d.format || (d.pod_package_id && d.pod_package_id!==luluDefaultFormat?'custom':'paperback'),{options:[['paperback','6 × 9 in paperback · Black & white · Matte cover'],['custom','Use another Lulu format']],full:true,help:'The paperback preset uses standard black-and-white printing on white paper.'})}<div id="lulu-custom-format" class="full" ${(d.format==='custom'||d.pod_package_id&&d.pod_package_id!==luluDefaultFormat)?'':'hidden'}>${luluField('pod_package_id','Lulu format code',d.pod_package_id||luluDefaultFormat,{maxlength:40,help:'For a different trim, binding, or paper, use the package ID supplied by Lulu.'})}<a href="https://developers.lulu.com/" target="_blank" rel="noopener noreferrer">Find format specifications at Lulu ↗</a></div>${luluField('page_count','Total interior pages',d.page_count??120,{required:true,type:'number',min:1,max:3000,help:'Include title pages and blank pages. Must match your final interior PDF.'})}${luluField('retail_price','Your selling price per copy',d.retail_price??'19.99',{required:true,type:'number',min:0,step:'0.01',help:'Used to estimate your margin; it does not collect payment.'})}${luluField('currency','Currency',d.currency||'USD',{options:[['USD','US dollar (USD)'],['CAD','Canadian dollar (CAD)'],['GBP','British pound (GBP)'],['EUR','Euro (EUR)'],['AUD','Australian dollar (AUD)']]})}</div></fieldset><fieldset class="pod-step"><legend><b>3</b> Add your print files</legend><p>Paste download links to two print-ready PDFs. Lulu must be able to open them without signing in. Adding a link does not upload or validate the file.</p><div class="formgrid">${luluField('interior_url','Interior PDF link (optional for drafts)',d.interior_url||'',{type:'url',maxlength:2000,full:true,placeholder:'https://…/interior.pdf',help:'One PDF containing all the inside pages in reading order.'})}${luluField('cover_url','Cover PDF link (optional for drafts)',d.cover_url||'',{type:'url',maxlength:2000,full:true,placeholder:'https://…/cover.pdf',help:'One PDF spread: back cover, spine, and front cover. Use Lulu’s dimensions for this page count.'})}</div><div class="toolbar"><button type="button" class="btn" data-lulu="check-files">Check links & open previews</button><a class="btn flat" href="https://www.lulu.com/publishing-toolkit" target="_blank" rel="noopener noreferrer">Get Lulu’s file preparation guide ↗</a></div><div id="lulu-file-feedback" role="status"></div></fieldset><details class="pod-advanced"><summary>Production status, source record & notes</summary><div class="formgrid">${luluField('status','Production status',d.status||'draft',{options:[['draft','Draft — still preparing'],['files','Files prepared — proof still needed'],['proof','Physical proof reviewed and approved'],['live','Ready for customer fulfillment']]})}${luluField('record_id','Master-library record (optional)',d.record_id||'',{maxlength:100,placeholder:'M-00001'})}${luluField('notes','Production notes',d.notes||'',{area:true,full:true,maxlength:2000})}</div><p class="small">Status is your team’s record, not an automatic Lulu validation. Sandbox orders never produce a physical book.</p></details><div class="formactions pod-save"><span>Book details are saved on this device.</span><button class="btn primary" type="submit">Save my book</button></div></form></section>`;
+}
+function luluAddressFields() {
+  const v = luluDelivery;
+  return `${luluField('name','Recipient name',v.name||'',{required:true,maxlength:120})}${luluField('organization','Church or organization (optional)',v.organization||'',{maxlength:120})}${luluField('street1','Street address',v.street1||'',{required:true,maxlength:160,full:true})}${luluField('street2','Apartment, suite, etc. (optional)',v.street2||'',{maxlength:160,full:true})}${luluField('city','City',v.city||'',{required:true,maxlength:100})}${luluField('state_code','State / province code',v.state_code||'',{maxlength:10,placeholder:'CA'})}${luluField('postcode','Postal code',v.postcode||'',{required:true,maxlength:24})}${luluField('country_code','Country',v.country_code||'US',{required:true,maxlength:2,placeholder:'US',help:'Two-letter country code: US, CA, GB, AU, etc.'})}${luluField('phone_number','Delivery phone number',v.phone_number||'',{required:true,type:'tel',maxlength:24,help:'Used by the delivery carrier.'})}${luluField('email','Recipient email (optional)',v.email||'',{type:'email',maxlength:254})}`;
+}
+const luluShippingLabel = level => ({MAIL:'Standard mail',PRIORITY_MAIL:'Priority mail',GROUND:'Ground',GROUND_HD:'Ground · residential',GROUND_BUS:'Ground · business',EXPEDITED:'Expedited',EXPRESS:'Express'}[level] || level);
+function luluSummary(edition) { return luluQuote?luluQuoteView(edition):`<span class="eyebrow">YOUR ESTIMATE</span><h2>Know the cost before you order.</h2><p>Enter a destination to see Lulu’s print, shipping, and tax estimate.</p><ul class="pod-checks">${luluChecks(edition).map(([label,ok])=>`<li class="${ok?'done':''}"><span aria-hidden="true">${ok?'✓':'○'}</span> ${E(label)}</li>`).join('')}</ul><a href="#/print-studio?edit=${q(edition.id)}">Review book details →</a><p class="small">You can estimate costs before your files or proof are ready. A quote does not place an order.</p>`; }
+function luluFulfillment(edition) {
+  const options = luluShipping.length ? luluShipping.map(x=>[x.level||x.shipping_level||x.name,luluShippingLabel(x.level||x.shipping_level||x.name)]) : ['MAIL','PRIORITY_MAIL','GROUND','GROUND_HD','GROUND_BUS','EXPEDITED','EXPRESS'].map(x=>[x,luluShippingLabel(x)]);
+  return `<a class="back" href="#/print-studio">← My print books</a><div class="pod-fulfill-head"><div><span class="eyebrow">PRINT & DELIVERY</span><h1>${E(edition.title)}</h1><p>${E(luluFormatLabel(edition))} · ${E(edition.page_count)} pages</p></div><a class="btn" href="#/print-studio?edit=${q(edition.id)}">Edit book</a></div><div class="pod-columns"><form id="lulu-quote" class="pod-panel"><input type="hidden" name="edition_id" value="${E(edition.id)}"><h2>Where should we send it?</h2><p>Your delivery details stay only in this open session and are sent to Lulu when you request a quote or order.</p><div class="formgrid">${luluField('quantity','Number of copies',luluDelivery.quantity||1,{required:true,type:'number',min:1,max:10000})}${luluField('shipping_option','Delivery method',luluDelivery.shipping_option||'MAIL',{options})}${luluAddressFields()}</div><div class="formactions"><button type="button" class="btn" data-lulu="shipping-options">Find delivery options</button><button class="btn primary" type="submit">Calculate my estimate</button></div><p class="small">Delivery options depend on destination and book format. No payment is collected here.</p></form><aside id="lulu-summary" class="pod-panel pod-summary" aria-live="polite">${luluSummary(edition)}</aside></div>`;
+}
+function luluOrderBlock(edition) {
+  if (!luluHealth?.configured) return 'Connect your Lulu account to place an order.';
+  if (!luluHealth.orders_enabled) return 'Your administrator needs to enable order submission in Lulu setup.';
+  if (!luluPublicURL(edition.interior_url) || !luluPublicURL(edition.cover_url)) return 'Add both print-ready PDF links to this book before ordering.';
+  return '';
+}
+function luluQuoteView(edition) {
+  const x = luluQuote, currency = x.currency || edition.currency, total = x.total_cost_incl_tax ?? x.total_cost_excl_tax;
+  const margin = total == null?null:Number(edition.retail_price)*Number(x._payload.line_item.quantity)-Number(total);
+  const address = x._payload.shipping_address, block = luluOrderBlock(edition);
+  return `<span class="eyebrow">LIVE LULU ESTIMATE</span><h2>${luluMoney(total,currency)}</h2><p>${E(x._payload.line_item.quantity)} ${x._payload.line_item.quantity===1?'copy':'copies'} · ${E(luluShippingLabel(x._payload.shipping_option))}<br>Deliver to ${E(address.name)}, ${E(address.city)}, ${E(address.postcode)}</p><dl class="pod-costs"><div><dt>Print before tax</dt><dd>${luluMoney((x.line_item_costs||[]).reduce((n,i)=>n+Number(i.total_cost_excl_tax||0),0),currency)}</dd></div><div><dt>Shipping before tax</dt><dd>${luluMoney(x.shipping_cost?.total_cost_excl_tax,currency)}</dd></div><div><dt>Fulfillment fee before tax</dt><dd>${luluMoney(x.fulfillment_cost?.total_cost_excl_tax,currency)}</dd></div><div><dt>Total tax</dt><dd>${luluMoney(x.total_tax,currency)}</dd></div><div><dt>Estimated margin*</dt><dd>${luluMoney(margin,currency)}</dd></div></dl><p class="small">*Selling price less Lulu’s quoted total. Excludes checkout fees and other business expenses. Estimates can change.</p>${x.warnings?.length?`<div class="notice"><strong>Address review</strong><p>${E(x.warnings.map(w=>w.message||String(w)).join(' '))}</p></div>`:''}<button class="btn" data-lulu="download-quote">Download estimate</button><hr><h3>${luluHealth?.environment==='sandbox'?'Test your order':'Ready to print?'}</h3>${block?`<p>${E(block)}</p><button class="btn" data-lulu="${!luluHealth?.configured||!luluHealth?.orders_enabled?'setup':'edit-current'}">${!luluHealth?.configured||!luluHealth?.orders_enabled?'View connection setup':'Add print files'}</button>`:`<div class="formgrid">${luluField('contact_email','Order contact email',luluDelivery.contact_email||'',{type:'email',required:!luluHealth.contact_email_configured,maxlength:254,help:luluHealth.contact_email_configured?'Leave blank to use the account contact.':'Lulu sends order updates to this address.',full:true})}${luluField('external_id','Your order reference',luluDelivery.external_id||x._reference,{maxlength:100,full:true})}</div><button class="btn primary" data-lulu="create-order">${luluHealth?.environment==='sandbox'?'Create test order':'Review & place print order'}</button>`}<p class="small">${luluHealth?.environment==='sandbox'?'Test orders do not print, ship, or charge a production account.':'Production orders can charge your Lulu account. Collect customer payment separately. You may order one copy as a physical proof.'}</p>`;
+}
+function luluJobs() {
+  return `<section class="pod-panel"><div class="ws-section-title"><div><span class="eyebrow">ORDER TRACKING</span><h2>Your print orders</h2></div><a href="${luluHealth?.environment==='production'?'https://api.lulu.com/':'https://api.sandbox.lulu.com/'}" target="_blank" rel="noopener noreferrer">Open Lulu dashboard ↗</a></div>${luluState.jobs.length?luluState.jobs.map(job=>`<div class="pod-job"><div><strong>${E(job.title)}</strong><p>Order ${E(job.id)} · ${E(job.status||'Submitted')} ${job.environment?`· ${E(job.environment)}`:''}</p>${(job.tracking||[]).filter(luluPublicURL).map((url,i)=>`<a href="${E(luluPublicURL(url))}" target="_blank" rel="noopener noreferrer">Track shipment ${i+1} ↗</a>`).join(' ')}${job.updated_at?`<small>Last checked ${E(new Date(job.updated_at).toLocaleString())}</small>`:''}</div><button class="btn small" data-lulu="refresh-job" data-id="${E(job.id)}">Refresh status</button></div>`).join(''):'<p>Orders you place here will appear with production status and shipment links. Existing orders in your Lulu account are available in the Lulu dashboard.</p>'}</section>`;
+}
+function luluPage() {
+  const p = params(), record = byId.get(p.get('record')), edit = luluState.editions.find(x=>x.id===p.get('edit')), fulfill = luluState.editions.find(x=>x.id===p.get('fulfill'));
+  const active = fulfill?.id || '';
+  if (active !== luluActiveEdition) { luluActiveEdition = active; luluQuote = null; luluShipping = []; luluDelivery = {}; }
+  if (!luluHealth && !luluBusy) setTimeout(luluConnect,0);
+  const seed = edit || {record_id:record?.['Master ID']||'', title:record?.['Campaign Title']||'', subtitle:record?.Subtitle||''};
+  let body = '';
+  if (fulfill) body = luluFulfillment(fulfill);
+  else if (p.has('edit') || record) body = luluEditionForm(seed);
+  else body = `<section class="pod-intro"><div><span class="eyebrow">FROM YOUR LIBRARY. INTO THEIR HANDS.</span><h1>Make it<br>something<br><em>they can hold.</em></h1><p>Prepare a beautiful book, see the delivery cost, and send it to the people you serve.</p><a class="btn primary" href="#/print-studio?edit=new">Prepare my first book →</a></div><div class="pod-journey"><span class="pod-hero-number">01 — 03</span><ol><li><strong>Prepare your book</strong><span>Add a title, format, and print-ready PDFs.</span></li><li><strong>Get your estimate</strong><span>Choose copies and a delivery address.</span></li><li><strong>Order & follow along</strong><span>Submit to Lulu and track its progress.</span></li></ol><p>Start with a draft. Add the finishing touches when you’re ready.</p></div></section><div class="ws-section-title pod-library-title"><div><span class="eyebrow">YOUR PRINT SHELF</span><h2>${luluState.editions.length?'My books':'Your next chapter starts here.'}</h2></div><a class="btn" href="#/print-studio?edit=new">+ New book</a></div>${luluState.editions.length?`<div class="pod-editions">${luluState.editions.map(luluEditionCard).join('')}</div>`:`<div class="empty"><h3>No print editions yet.</h3><p>Create a book here, or choose “Prepare a print edition” on a library record.</p><div class="toolbar"><a class="btn primary" href="#/print-studio?edit=new">Create a book</a><a class="btn" href="#/catalog">Explore the library</a></div></div>`}`;
+  shell(`<div id="lulu-workspace">${luluConnectionCard()}${luluNotice()}${body}${!p.has('edit')&&!record?luluJobs():''}${luluSetup()}</div>`,'print-studio','Print on demand');
+}
+function luluFormPayload(form,edition) {
+  const f = Object.fromEntries(new FormData(form));
+  return {currency:edition.currency,line_item:{title:edition.title,pod_package_id:edition.pod_package_id,page_count:Number(edition.page_count),quantity:Number(f.quantity),cover_url:edition.cover_url,interior_url:edition.interior_url,external_id:edition.id},shipping_address:{name:f.name,organization:f.organization,street1:f.street1,street2:f.street2,city:f.city,state_code:f.state_code,postcode:f.postcode,country_code:f.country_code?.toUpperCase(),phone_number:f.phone_number,email:f.email,is_business:false},shipping_option:f.shipping_option};
+}
+function luluInvalidateQuote() {
+  if (!luluQuote) return;
+  luluQuote = null;
+  const edition = luluState.editions.find(x=>x.id===luluActiveEdition), summary = $('#lulu-summary');
+  if (edition && summary) summary.innerHTML = luluSummary(edition);
+  luluNotify('Delivery details changed. Calculate a new estimate before ordering.');
+}
+function luluInput(e) {
+  const el = e.target, form = el.closest?.('form');
+  if (form?.id==='lulu-edition') { luluDrafts[form.dataset.draft] = Object.fromEntries(new FormData(form)); return true; }
+  if (form?.id==='lulu-quote') {
+    luluDelivery = {...luluDelivery,...Object.fromEntries(new FormData(form))};
+    if (['country_code','quantity'].includes(el.name)) luluShipping = [];
+    luluInvalidateQuote(); return true;
+  }
+  if (['lulu-contact_email','lulu-external_id'].includes(el.id)) { luluDelivery[el.name] = el.value; return true; }
+  return false;
+}
+function luluChange(e) {
+  if (e.target.id === 'lulu-format') {
+    $('#lulu-custom-format').hidden = e.target.value !== 'custom';
+    if(e.target.value==='paperback') $('#lulu-pod_package_id').value=luluDefaultFormat;
+  }
+  return luluInput(e);
+}
+function luluSubmit(e) {
+  const form = e.target;
+  if (!['lulu-edition','lulu-quote'].includes(form?.id)) return false;
+  e.preventDefault(); if (luluBusy || !form.reportValidity()) return true;
+  (async()=>{
+    luluSetBusy(form.id); luluNotify(form.id==='lulu-quote'?'Calculating your delivered cost…':'Saving your book…');
+    try {
+      const f = Object.fromEntries(new FormData(form));
+      if (form.id==='lulu-edition') {
+        const current = luluState.editions.find(x=>x.id===f.edition_id);
+        const edition = {id:current?.id||CB.id(),record_id:(f.record_id||'').trim(),title:(f.title||'').trim(),subtitle:(f.subtitle||'').trim(),pod_package_id:f.format==='paperback'?luluDefaultFormat:(f.pod_package_id||'').trim().toUpperCase(),page_count:Number(f.page_count),retail_price:Number(f.retail_price).toFixed(2),currency:f.currency,status:f.status,interior_url:(f.interior_url||'').trim(),cover_url:(f.cover_url||'').trim(),notes:(f.notes||'').trim(),updated_at:new Date().toISOString()};
+        if (!edition.title) throw Error('Add a title for your book.');
+        if (!/^[A-Z0-9]{20,40}$/.test(edition.pod_package_id)) throw Error('Check the Lulu format code, or choose the 6 × 9 paperback preset.');
+        for (const [key,label] of [['interior_url','Interior PDF'],['cover_url','Cover PDF']]) if(edition[key]&&!luluPublicURL(edition[key])) throw Error(`${label} needs an HTTPS download link without a username or password.`);
+        const before = [...luluState.editions];
+        if(current) luluState.editions[luluState.editions.indexOf(current)]=edition; else luluState.editions.unshift(edition);
+        try { luluPersist(); } catch { luluState.editions=before; throw Error('This browser could not save the book. Allow site storage or free some space, then try again. Your form is still here.'); }
+        delete luluDrafts[form.dataset.draft]; luluQuote=null; luluNotify('Your book is saved on this device. You can now get a print estimate.'); nav('print-studio');
+      } else {
+        if(!luluHealth?.configured) throw Error('Connect Lulu to calculate a live estimate. Open “Set up Lulu” above for the account steps.');
+        const edition=luluState.editions.find(x=>x.id===f.edition_id);
+        if(!edition) throw Error('Choose a saved book first.');
+        luluDelivery={...luluDelivery,...f};
+        const payload=luluFormPayload(form,edition), stamp=JSON.stringify(payload);
+        const result=await luluRequest('quote',{body:payload});
+        if(currentRoute()[0]!=='print-studio'||params().get('fulfill')!==edition.id) return;
+        if(stamp!==JSON.stringify(luluFormPayload(form,edition))) throw Error('Your delivery details changed while calculating. Please calculate again.');
+        luluQuote={...result,_payload:payload,_reference:`LT-${CB.id()}`};
+        $('#lulu-summary').innerHTML=luluQuoteView(edition); luluNotify('Your live estimate is ready. No order has been placed.');
+      }
+    } catch(err) { luluNotify(err.message,true); }
+    finally { luluSetBusy(''); }
+  })();
+  return true;
+}
+function luluClick(e) {
+  const el=e.target.closest?.('[data-lulu]'); if(!el?.dataset?.lulu) return false;
+  e.preventDefault(); if(luluBusy) return true;
+  const action=el.dataset.lulu;
+  if(action==='connect') { luluConnect(); return true; }
+  if(action==='setup') { const setup=$('#lulu-setup'); setup.open=true; setup.scrollIntoView({behavior:'smooth',block:'start'}); setup.querySelector('summary').focus(); return true; }
+  (async()=>{
+    luluSetBusy(action);
+    try {
+      const edition=luluState.editions.find(x=>x.id===(el.dataset.id||luluActiveEdition));
+      if(action==='edit-current') { nav('print-studio',{edit:luluActiveEdition}); return; }
+      if(action==='download-setup') { download('LifeTogether-Lulu-setup.txt','LULU CONNECTION CHECKLIST\n\n1. Open https://developers.lulu.com/ and create sandbox API credentials.\n2. In Netlify server environment variables add LULU_CLIENT_KEY, LULU_CLIENT_SECRET, LULU_API_ENVIRONMENT=sandbox, LULU_CONTACT_EMAIL, LULU_ENABLE_ORDERS=false.\n3. Redeploy. Check the connection in Print on demand. Test delivery options and quotes.\n4. Enable sandbox orders for testing. Sandbox jobs do not print or ship.\n5. Before production: approve a physical proof, configure Lulu billing, checkout, and staff access. Then enable production deliberately.\n','text/plain'); luluNotify('Setup checklist downloaded.'); return; }
+      if(action==='export-edition') { download('LifeTogether-print-edition.json',JSON.stringify({schema:'lifetogether-print-edition-v1',edition,preparation:luluChecks(edition)},null,2),'application/json'); luluNotify('Book details downloaded.'); return; }
+      if(action==='download-quote') {
+        if(!luluQuote) throw Error('Calculate an estimate first.');
+        const {_payload,...quote}=luluQuote;
+        download('LifeTogether-print-estimate.json',JSON.stringify({title:edition.title,quantity:_payload.line_item.quantity,shipping:_payload.shipping_option,currency:edition.currency,estimate:quote,note:'Estimate only. No order placed. Delivery address omitted.'},null,2),'application/json'); luluNotify('Estimate downloaded without your delivery address.'); return;
+      }
+      if(action==='check-files') {
+        const form=$('#lulu-edition'), f=Object.fromEntries(new FormData(form));
+        const urls=[['Interior PDF',f.interior_url],['Cover PDF',f.cover_url]];
+        $('#lulu-file-feedback').innerHTML=urls.map(([label,url])=>luluPublicURL(url)?`<p>✓ ${E(label)} uses HTTPS. <a href="${E(luluPublicURL(url))}" target="_blank" rel="noopener noreferrer">Open ${E(label.toLowerCase())} ↗</a></p>`:`<p>${E(label)}: add a complete HTTPS download link.</p>`).join('')+'<p class="small">Open each link to check the file. This checks link format only; Lulu still needs to validate the PDF and print specifications.</p>';
+        luluNotify('File-link checks are shown below the PDF fields.'); return;
+      }
+      if(action==='remove-edition') {
+        if(!confirm(`Remove “${edition.title}” from this device? This will not cancel Lulu orders.`)) return;
+        luluState.editions=luluState.editions.filter(x=>x.id!==edition.id); luluPersist(); luluNotify('Book removed from this device.'); render(); return;
+      }
+      if(action==='shipping-options') {
+        const form=$('#lulu-quote'), f=Object.fromEntries(new FormData(form));
+        luluDelivery={...luluDelivery,...f};
+        if(!/^[A-Za-z]{2}$/.test(f.country_code||'')) throw Error('Enter a two-letter country code, such as US, before finding delivery options.');
+        if(!Number.isInteger(Number(f.quantity))||Number(f.quantity)<1||Number(f.quantity)>10000) throw Error('Choose between 1 and 10,000 copies.');
+        if(!luluHealth?.configured) throw Error('Connect Lulu to load delivery options. Open “Set up Lulu” above for the account steps.');
+        const payload=luluFormPayload(form,edition); luluNotify('Finding delivery options for your book…');
+        const result=await luluRequest('shipping-options',{body:{country:payload.shipping_address.country_code,currency:payload.currency,line_item:payload.line_item}});
+        if(params().get('fulfill')!==edition.id||f.quantity!==form.elements.quantity.value||f.country_code!==form.elements.country_code.value) return;
+        luluShipping=(Array.isArray(result)?result:result.results||result.shipping_options||[]).filter(x=>x.level||x.shipping_level||x.name);
+        if(!luluShipping.length) throw Error('Lulu returned no delivery options for this destination and book. Check the country and format.');
+        const select=$('#lulu-shipping_option'), old=select.value;
+        select.innerHTML=luluShipping.map(x=>{const level=x.level||x.shipping_level||x.name;return `<option value="${E(level)}">${E(luluShippingLabel(level))}</option>`}).join('');
+        if(luluShipping.some(x=>(x.level||x.shipping_level||x.name)===old)) select.value=old;
+        luluDelivery.shipping_option=select.value; luluInvalidateQuote(); luluNotify(`${luluShipping.length} delivery options found. Choose a method, then calculate your estimate.`); return;
+      }
+      if(action==='create-order') {
+        if(!luluQuote?._payload) throw Error('Calculate a fresh estimate before ordering.');
+        const block=luluOrderBlock(edition); if(block) throw Error(block);
+        const form=$('#lulu-quote'); if(!form.reportValidity()) return;
+        if(JSON.stringify(luluQuote._payload)!==JSON.stringify(luluFormPayload(form,edition))) { luluInvalidateQuote(); throw Error('Delivery details changed. Calculate a new estimate before ordering.'); }
+        const email=$('#lulu-contact_email'), reference=$('#lulu-external_id');
+        if(email&&!email.reportValidity()) return;
+        const payload=JSON.parse(JSON.stringify(luluQuote._payload));
+        payload.contact_email=email?.value||''; payload.external_id=reference?.value||luluQuote._reference;
+        if(!/^[A-Za-z0-9._-]{1,100}$/.test(payload.external_id)) throw Error('Use letters, numbers, dots, underscores, or hyphens in the order reference.');
+        const total=luluMoney(luluQuote.total_cost_incl_tax??luluQuote.total_cost_excl_tax,luluQuote.currency||edition.currency);
+        if(!confirm(`${luluHealth.environment==='production'?'Place a production print order? Lulu may charge your account.':'Create a test order? It will not print or ship.'}\n\n${edition.title}\n${payload.line_item.quantity} copies · ${total} estimated\n${payload.shipping_address.name}, ${payload.shipping_address.city}\n\nContinue?`)) return;
+        luluNotify('Submitting your print order. Please keep this page open…');
+        // Consume the quote before submission so an ambiguous timeout cannot be retried by double-clicking.
+        luluQuote=null;
+        const job=await luluRequest('create-order',{body:payload}), id=String(job.id||job.print_job_id||'');
+        if(!id) throw Error('Check your Lulu dashboard: the response did not include an order ID. Do not submit again until you confirm its status.');
+        luluState.jobs.unshift({id,title:edition.title,status:job.status?.name||job.status||'Submitted',environment:luluHealth.environment,created_at:new Date().toISOString()}); luluState.jobs=luluState.jobs.slice(0,50);
+        try { luluPersist(); } catch { luluNotify(`Order ${id} was created, but this browser could not save its history. Keep the order ID and check your Lulu dashboard.`,true); nav('print-studio'); return; }
+        luluNotify(`Order ${id} created. Follow its progress in Your print orders.`); nav('print-studio'); return;
+      }
+      if(action==='refresh-job') {
+        const job=luluState.jobs.find(x=>x.id===el.dataset.id);
+        if(job?.environment&&job.environment!==luluHealth?.environment) throw Error(`This is a ${job.environment} order. Use the matching Lulu environment to check its status.`);
+        luluNotify('Checking the latest order status…');
+        const data=await luluRequest('status',{params:{id:el.dataset.id}});
+        if(job) { job.status=data.status?.name||data.status||'Updated'; job.tracking=(data.line_items||[]).flatMap(x=>x.tracking_urls||[]).filter(luluPublicURL).slice(0,5); job.updated_at=new Date().toISOString(); luluPersist(); }
+        luluNotify(`Order ${el.dataset.id}: ${job?.status||'status updated'}.`); render(); return;
+      }
+    } catch(err) { luluNotify(err.message,true); if(action==='create-order'&&!luluQuote&&$('#lulu-summary')) $('#lulu-summary').innerHTML=luluSummary(luluState.editions.find(x=>x.id===luluActiveEdition)); }
+    finally { luluSetBusy(''); }
+  })(); return true;
+}
+function luluDecorate() {
+  const r=currentRoute(),brief=document.querySelector('[data-record-brief]');
+  if(r[0]==='record'&&brief&&!brief.disabled&&!document.querySelector('.pod-record-link')) { const a=document.createElement('a');a.className='btn pod-record-link';a.href='#/print-studio?record='+encodeURIComponent(r[1]||'');a.textContent='Prepare a print edition';brief.after(a); }
+  if(r[0]==='ecosystem'&&params().get('spoke')==='doingchurch') { const panel=document.querySelector('.spoke-detail');if(panel&&!panel.querySelector('.pod-spoke-link')) { const a=document.createElement('a');a.className='btn pod-spoke-link';a.href='#/print-studio';a.textContent='Open print-on-demand studio';panel.append(a); } }
+}
 
  let searchTimer;
- document.addEventListener('input',e=>{wsInput(e);if(campaignInput(e))return;const el=e.target;if(!el.dataset.query||el.dataset.onchange)return;clearTimeout(searchTimer);searchTimer=setTimeout(()=>updateQuery(el.dataset.query,el.value),230)});
+ document.addEventListener('input',e=>{if(luluInput(e))return;wsInput(e);if(campaignInput(e))return;const el=e.target;if(!el.dataset.query||el.dataset.onchange)return;clearTimeout(searchTimer);searchTimer=setTimeout(()=>updateQuery(el.dataset.query,el.value),230)});
  document.addEventListener('change',async e=>{if(luluChange(e))return;if(await wsChange(e))return;if(await campaignChange(e))return;const el=e.target;if(el.dataset.query){clearTimeout(searchTimer);updateQuery(el.dataset.query,el.value)}if(el.id==='restore-collection'){try{const file=el.files[0];if(!file)return;if(file.size>1000000)throw Error('Collection file is too large');const value=JSON.parse(await file.text());if(value.schema!=='lifetogether-collection-v1'||!Array.isArray(value.ids))throw Error('This is not a LifeTogether collection file');shelf=new Set(value.ids.filter(id=>byId.has(id)));persist();render();toast(`Restored ${shelf.size} records`)}catch(err){toast(err.message)}}});
  document.addEventListener('submit',e=>{if(luluSubmit(e))return;if(finderSubmit(e))return;if(wsSubmit(e))return;if(campaignSubmit(e))return;if(e.target.id!=='survey-form')return;e.preventDefault();profile=Object.fromEntries(new FormData(e.target));wsState.survey={...profile};wsPersist();recResults=LTCore.recommend(masterRecords,profile);nav('results')});
  function persist(){try{localStorage.setItem('lt-master-library-shelf-v1',JSON.stringify([...shelf]))}catch{toast('Device storage unavailable. Download the collection file to keep it.')}}
