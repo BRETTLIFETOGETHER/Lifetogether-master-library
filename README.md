@@ -36,7 +36,7 @@ Each ministry has an independently deployable static site in `sites/<id>/`, with
 | ChristianMarketplaceMinistry.com | `sites/workplace/` | Marketplace, business, leadership, vocation, and workplace source matches |
 | DoingChurchTogether.com | `sites/doingchurch/` | Church health, leadership, groups, mission, and community source matches |
 
-Run `node scripts/build-network-sites.cjs` to regenerate every package and `node scripts/test-network-sites.cjs` to validate the network. `sites/manifest.json` records each deployment name, requested domain, record count, and catalog composition. Every site links back to the shared Campaign Builder and to the other nine ministries.
+Run `node scripts/build-network-sites.cjs` to regenerate every package and `node scripts/test-network-sites.cjs` to validate the network. `sites/manifest.json` records each deployment name, requested domain, record count, and catalog composition. Every site links back to the shared Campaign Builder and to the other nine ministries. Each site also includes the shared journey configurator, intelligence profile, source-backed outline viewer, edition manifest, advisor-referral brief, commerce pathways, and Lulu print handoff documented in `docs/NETWORK-PRODUCT-EXPERIENCE.md`.
 
 ## Source integrity and holds
 
@@ -61,11 +61,11 @@ Brett explicitly authorized public upload and live publication on 2026-09-09. Th
 
 Repository: https://github.com/BRETTLIFETOGETHER/Lifetogether-master-library
 
-`dist/` is the master library. `sites/` contains the ten standalone website packages. Their requested custom domains have not been connected because ownership and DNS access have not been verified. Shopify configuration and checkout remain outside this catalog release.
+`dist/` is the master library. `sites/` contains the ten standalone website packages. Their requested custom domains have not been connected because ownership and DNS access have not been verified. Shopify product paths are present in the experience, while checkout stays inactive until approved product URLs and pricing are connected. Lulu's server-side sandbox integration is installed and documented in `docs/LULU-PRINT-ON-DEMAND.md`.
 
 ## Deliberate scope boundary
 
-This delivery is the master catalog requested in the latest instruction. It does not activate checkout, price plans, all-access subscriptions, Canva/InDesign handoff, family accounts, saved sensitive profiles, or manuscript generation. It does not implement all 23 intelligence engines or the hundreds of proposed tools. Requested four-/six-session and 7-/21-/30-/40-day options are recorded as development possibilities; the UI displays only the outlines actually present.
+This delivery does not claim that checkout, pricing, all-access subscriptions, Canva/InDesign automation, account-based sensitive profiles, or missing manuscripts are active. The interfaces now prepare those product decisions and production briefs without fabricating completion. All 23 intelligence taxonomies are visible and selectable as planning lenses; they are not represented as validated diagnostic engines. Requested four-/six-session and 10-/21-/30-/40-day options create a development configuration, while supplied outlines remain visibly distinct from missing content.
 
 The profile flow is a working, rules-based discovery aid. Audience and outcome terms must both match; source priority and explicit duration add ranking weight. It is not the previously approved full family/advisor interview instrument. Mission, values, edition, and stage appear in the exported brief but do not rewrite content. Profile answers stay in the open session; only selected record IDs persist locally. A user can download a collection file for portability.
 

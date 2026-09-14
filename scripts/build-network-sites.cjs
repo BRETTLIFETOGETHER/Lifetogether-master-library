@@ -6,6 +6,11 @@ const D=JSON.parse(fs.readFileSync(path.join(root,'data/catalog.json'),'utf8'));
 const C=require(path.join(root,'src/campaign-core.js')),Finder=C.Finder;
 const master=D.sections[1].rows.map((row,i)=>({...Object.fromEntries(D.sections[1].columns.map((h,j)=>[h,row[j]||''])),_section:1,_row:i}));
 const records=[...master,...D.extraRecords],candidates=Finder.index(records).filter(x=>!x.restricted&&x.kind==='catalog');
+const weekly=new Map(),daily=new Map();
+const addOutline=(map,id,item)=>{if(!id)return;const key=String(id),items=map.get(key)||[];if(!items.some(x=>x.number===item.number&&x.title===item.title))items.push(item);map.set(key,items)};
+for(const sid of [53,61]){const section=D.sections[sid];for(const row of section.rows){const value=Object.fromEntries(section.columns.map((name,i)=>[name,row[i]]));addOutline(weekly,value['Parent Master ID'],{number:value['Session #']||value['Session No.'],title:value['Session Title'],subtitle:value['Session Subtitle']||'',source:`${section.name}`})}}
+for(const row of D.sections[54].rows){const section=D.sections[54],value=Object.fromEntries(section.columns.map((name,i)=>[name,row[i]]));addOutline(daily,value['Parent Master ID'],{number:value['Global Day'],title:value['Devotional Day Title'],subtitle:value['Week Theme']||'',source:section.name})}
+for(const row of D.sections[38].rows){if(!row[7]||!row[4])continue;const parent=master.find(x=>x['Campaign Title']===row[2]);if(parent)addOutline(daily,parent['Master ID'],{number:row[4],title:row[5],subtitle:row[6]?`Scripture: ${row[6]}`:'',source:D.sections[38].name})}
 const configs={
  sermon:{defaults:['catalytic','series'],fallback:['campaign']},
  groups:{defaults:['campaign','series'],fallback:['catalytic']},
@@ -20,7 +25,7 @@ const configs={
 };
 const score=(item,site)=>site.terms.reduce((n,t)=>n+((' '+item.search+' ').includes(' '+t.toLowerCase()+' ')?8:0),0)+item.priority*2+(item.subtitle?2:0)+(item.durations.includes(40)?(site.id==='church'?30:2):0)+Math.max(0,site.featured.length-site.featured.indexOf(item.type))*2;
 function belongs(item,site){if(configs[site.id].all)return true;return site.terms.some(t=>(' '+item.search+' ').includes(' '+t.toLowerCase()+' '));}
-function compact(item,site){return {id:item.recordId,title:item.title,subtitle:item.subtitle,type:item.type,status:item.status,durations:item.durations,goals:item.goals,format:item.format,category:item.category,source:item.sourceLabel,search:item.search,score:score(item,site)};}
+function compact(item,site){return {id:item.recordId,title:item.title,subtitle:item.subtitle,type:item.type,status:item.status,durations:item.durations,goals:item.goals,format:item.format,category:item.category,source:item.sourceLabel,search:item.search,score:score(item,site),sessions:(weekly.get(item.recordId)||[]).slice(0,12),days:(daily.get(item.recordId)||[]).slice(0,40)};}
 function write(file,content){fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,content)}
 fs.rmSync(out,{recursive:true,force:true});
 const deploymentBase=id=>'https://lifetogether-'+({church:'40-day-campaign',groups:'small-group-curriculum',advisor:'christian-advisor-network',familyministry:'family-legacy-ministry',finance:'financial-wisdom-ministry',family:'family-legacy-by-design',flourishing:'flourishing-life-series',workplace:'christian-marketplace',doingchurch:'doing-church-together',sermon:'sermon-curator'}[id])+'.netlify.app/';
@@ -30,7 +35,8 @@ const manifest=[];
 for(const site of sites){
  const chosen=candidates.filter(x=>belongs(x,site)).map(x=>compact(x,site)).sort((a,b)=>b.score-a.score||a.title.localeCompare(b.title));
  const durations=[...new Set(chosen.flatMap(x=>x.durations))].sort((a,b)=>a-b);
- const payload=Buffer.from(zlib.gzipSync(JSON.stringify({site,records:chosen,network,durations}),{mtime:0})).toString('base64');
+ const intelligence=D.intelligence.map(name=>({name,domains:[...new Set(D.sections[69].rows.filter(row=>row[0]===name).map(row=>row[2]).filter(Boolean))].slice(0,5)}));
+ const payload=Buffer.from(zlib.gzipSync(JSON.stringify({site,records:chosen,network,durations,intelligence,commerce:{provider:'Shopify',singleCampaignUrl:'',allAccessUrl:''},masterUrl:'https://lifetogethermasterlibary.netlify.app/'}),{mtime:0})).toString('base64');
  const folder=path.join(out,site.id),html=htmlTemplate.replace('SITE_TITLE',site.name+' · LifeTogether').replace('SITE_DESCRIPTION',site.description).replace('SITE_NAME',site.name);
  write(path.join(folder,'index.html'),html);write(path.join(folder,'style.css'),css);write(path.join(folder,'app.js'),app);write(path.join(folder,'site-data.js'),'window.LT_SITE_DATA='+JSON.stringify({payload})+';');
  fs.cpSync(path.join(root,'src/fonts'),path.join(folder,'fonts'),{recursive:true});

@@ -2,6 +2,10 @@
 [build]
   publish = "dist"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 # Preserve links shared while the repository root was being published.
 [[redirects]]
   from = "/dist/*"
