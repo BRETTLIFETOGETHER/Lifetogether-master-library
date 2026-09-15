@@ -1,0 +1,11 @@
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {build} from 'esbuild';
+const dir=path.dirname(fileURLToPath(import.meta.url)),root=path.dirname(dir),site=path.join(root,'sites/doingchurch'),out=path.join(site,'workspace');fs.mkdirSync(out,{recursive:true});
+await build({entryPoints:[path.join(dir,'client.mjs')],outfile:path.join(out,'client.js'),bundle:true,platform:'browser',external:['./pdf-proof.js'],format:'esm',target:'es2022',minify:true});
+for(const fn of ['platform','commerce','print-files','advisor-directory'])await build({entryPoints:[path.join(dir,'functions',fn+'.mjs')],outfile:path.join(site,'netlify/functions',fn+'.mjs'),bundle:true,platform:'node',format:'esm',target:'node22',minify:false});
+await build({entryPoints:[path.join(dir,'pdf-proof.mjs')],outfile:path.join(out,'pdf-proof.js'),bundle:true,platform:'browser',external:['./pdf-proof.js'],format:'esm',target:'es2022',minify:true});
+for(const name of ['index.html','workspace.css'])fs.copyFileSync(path.join(dir,name),path.join(out,name));
+fs.copyFileSync(path.join(root,'src/discovery-core.js'),path.join(out,'discovery-core.js'));
+fs.writeFileSync(path.join(site,'netlify.toml'),'[build]\n  publish = "."\n[functions]\n  directory = "netlify/functions"\n  node_bundler = "esbuild"\n');
+fs.writeFileSync(path.join(site,'_headers'),'/workspace/*\n  Referrer-Policy: no-referrer\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Cache-Control: no-cache\n/.netlify/functions/*\n  Cache-Control: private, no-store\n');
+let home=fs.readFileSync(path.join(site,'index.html'),'utf8');home=home.replace('</head>',`<script>if(/^#(?:confirmation_token|recovery_token|invite_token|email_change_token|access_token)=/.test(location.hash))location.replace('/workspace/'+location.hash);</script></head>`);fs.writeFileSync(path.join(site,'index.html'),home);
+console.log('Built shared workspace browser application and Netlify service.');
