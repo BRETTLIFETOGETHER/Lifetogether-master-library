@@ -9,5 +9,7 @@ for(const site of manifest.sites){
  for(const r of data.records){assert.ok(r.id&&r.title);assert.ok(!r.restricted);assert.ok(['campaign','catalytic','series'].includes(r.type));assert.ok(Array.isArray(r.durations)&&Array.isArray(r.goals));assert.ok(Array.isArray(r.sessions)&&Array.isArray(r.days));}
  const html=fs.readFileSync(path.join(dir,'index.html'),'utf8');assert.ok(html.includes(data.site.name+' · LifeTogether'));assert.ok(html.includes(data.site.description));assert.ok(!html.includes('SITE_'));
 }
-const app=fs.readFileSync(path.join(root,'src/network-site.js'),'utf8');for(const feature of ['Journey builder','10 / 21 / 30 / 40','Complete edition manifest','Find the right kind of guide','download-brief','print-studio','Shopify product URLs'])assert.ok(app.includes(feature),'missing '+feature);assert.ok(!app.includes('innerHTML=r.'));
+const app=fs.readFileSync(path.join(root,'src/network-site.js'),'utf8');for(const feature of ['Journey builder','Complete edition manifest','Find the right kind of guide','download-brief','print-studio','Shopify product URLs'])assert.ok(app.includes(feature),'missing '+feature);assert.ok(!app.includes('innerHTML=r.'));assert.ok(app.includes('const formats=[10,21,30,40]'));
+const styles=manifest.sites.map(s=>fs.readFileSync(path.join(root,'sites',s.id,'style.css'),'utf8'));assert.equal(new Set(styles).size,10,'Every site needs a distinct theme');
+const homes=manifest.sites.map(s=>fs.readFileSync(path.join(root,'src/network-designs',s.id+'.js'),'utf8'));assert.equal(new Set(homes).size,10,'Every site needs a distinct home composition');
 console.log(JSON.stringify({passed:true,sites:manifest.sites.map(x=>({id:x.id,records:x.records}))}));

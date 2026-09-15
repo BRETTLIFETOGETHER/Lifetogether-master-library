@@ -37,8 +37,12 @@ for(const site of sites){
  const durations=[...new Set(chosen.flatMap(x=>x.durations))].sort((a,b)=>a-b);
  const intelligence=D.intelligence.map(name=>({name,domains:[...new Set(D.sections[69].rows.filter(row=>row[0]===name).map(row=>row[2]).filter(Boolean))].slice(0,5)}));
  const payload=Buffer.from(zlib.gzipSync(JSON.stringify({site,records:chosen,network,durations,intelligence,commerce:{provider:'Shopify',singleCampaignUrl:'',allAccessUrl:''},masterUrl:'https://lifetogethermasterlibary.netlify.app/'}),{mtime:0})).toString('base64');
- const folder=path.join(out,site.id),html=htmlTemplate.replace('SITE_TITLE',site.name+' · LifeTogether').replace('SITE_DESCRIPTION',site.description).replace('SITE_NAME',site.name);
- write(path.join(folder,'index.html'),html);write(path.join(folder,'style.css'),css);write(path.join(folder,'app.js'),app);write(path.join(folder,'site-data.js'),'window.LT_SITE_DATA='+JSON.stringify({payload})+';');
+ const marks={sermon:'¶',groups:'✳',advisor:'A',church:'40',familyministry:'⌂',finance:'≋',family:'F',flourishing:'✿',workplace:'↗',doingchurch:'⊕'};
+ const colors={sermon:'#8d292c',groups:'#aa432b',advisor:'#152b43',church:'#b62e16',familyministry:'#365d89',finance:'#526349',family:'#865741',flourishing:'#743b59',workplace:'#2451bb',doingchurch:'#a14931'};
+ const favicon='data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="${colors[site.id]}"/><text x="32" y="44" text-anchor="middle" font-family="Georgia,serif" font-size="38" fill="#fff8e9">${marks[site.id]}</text></svg>`);
+ const folder=path.join(out,site.id),html=htmlTemplate.replace('SITE_TITLE',site.name+' · LifeTogether').replace('SITE_DESCRIPTION',site.description).replace('SITE_NAME',site.name).replace(/href="data:image\/svg\+xml,[^"]*"/,`href="${favicon}"`).replace('</head>',`<meta name="theme-color" content="${colors[site.id]}"></head>`);
+ const design=fs.readFileSync(path.join(root,'src/network-designs',site.id+'.js'),'utf8'),theme=fs.readFileSync(path.join(root,'src/network-designs',site.id+'.css'),'utf8'),base=fs.readFileSync(path.join(root,'src/network-designs/base.css'),'utf8');
+ write(path.join(folder,'index.html'),html);write(path.join(folder,'style.css'),css+'\n'+base+'\n'+theme);write(path.join(folder,'app.js'),app.replace('/* SITE_DESIGN */',design));write(path.join(folder,'site-data.js'),'window.LT_SITE_DATA='+JSON.stringify({payload})+';');
  fs.cpSync(path.join(root,'src/fonts'),path.join(folder,'fonts'),{recursive:true});
  write(path.join(folder,'_redirects'),'/* /index.html 200\n');
  write(path.join(folder,'netlify.toml'),'[build]\n  publish = "."\n');
