@@ -15,13 +15,13 @@ Status is evidence-based. Implemented code, tested local behavior, live deployme
 | 7 | Audience-specific finder modes | Implemented | Church, group, class/ABF, family and workplace matching contexts. |
 | 8 | Reusable ministry and pastor profiles | Implemented | Cloud profile documents and profile-to-campaign reuse. |
 | 9 | Three-source intake and provenance | Partly implemented | Separate source layers, transcript/media intake, citations and distinct rights; automated media recovery remains unconnected. |
-| 10 | One complete flagship campaign package | Awaiting content completion and review | No complete approved 21-day Doing LifeTogether bundle was found. Existing financial-wisdom material has rights/alignment gaps. |
+| 10 | One complete flagship campaign package | Complete pilot draft prepared; review pending | A new original 21-day Doing LifeTogether manuscript, three teaching manuscripts, group/leader guide, age companions and launch kit are prepared for review outside the public catalog. Reader JSON import validated. Editorial, theological and safeguarding review remains required. |
 | 11 | Consistent durations and teaching schedules | Implemented | Seven lengths, coherent default gathering counts, explicit override validation and dated schedules. |
 | 12 | Catalytic Sunday pack | Implemented editor | Dedicated Catalytic Sunday pack with Scripture, gospel, response, invitation and follow-up fields; save/export. |
 | 13 | Weekend service run sheet | Implemented editor | Service run sheet calculates times and includes worship, scripts, bulletin and social fields. Planning Center integration not claimed. |
 | 14 | Controlled editions and review trail | Implemented core flow | Protected-core edition modes, personalization, named review fields and version history. |
 | 15 | Annual formation and continuation plan | Implemented planner | Seasonal/yearly pathway, leader rhythm, owners/milestones and Day 41 continuation planning. |
-| 16 | Shared accounts, workspaces and roles | Implemented; production verification pending | Netlify Identity enabled; server storage, role checks, private docs, email-bound invites and expiring/revocable snapshots. Local ACL and browser tests passed. |
+| 16 | Shared accounts, workspaces and roles | Deployed; real-account walkthrough pending | Netlify Identity enabled; server storage, role checks, private docs, email-bound invites and expiring/revocable snapshots. Local ACL/browser tests passed. Public workspace loads and anonymous protected API requests correctly return 401. |
 | 17 | Transparent needs questionnaires | Implemented planning questionnaires | Transparent preferences, no invented spiritual score; connected recommendations. |
 | 18 | Daily participant reader | Implemented | Daily edition editor/reader, private reflections, completion, media URLs, exports and opt-in calendar reminders. |
 | 19 | Private circles and invitation links | Implemented core flow | Private circle workspaces, email-bound invitations, shared plans and participant progress. No automatic messages sent. |
@@ -33,7 +33,7 @@ Status is evidence-based. Implemented code, tested local behavior, live deployme
 | 25 | Family practical tools | Implemented | Seven practical family tools with save/export; no invented finished-tool count. |
 | 26 | Doing LifeTogether and Doing WorkTogether | Implemented | Doing LifeTogether / Doing WorkTogether with six formation areas, preserving the original ten brands. |
 | 27 | Real usage and outcome measures | Implemented initial measures | Real workspace actions, reader completion and contextual outcome observations; no fabricated success metrics. |
-| 28 | Functional release integrity | Active verification | Core, browser, mobile and PDF checks; live account/purchase/fulfillment checks recorded separately. |
+| 28 | Functional release integrity | Deployed and checked | All ten public app.js hashes match f7e675d. Public workspace, Identity, protected endpoints and unconfigured commerce/advisor states verified. Real-account, purchase and fulfillment walkthroughs still require configuration. |
 
 ## External inputs
 

@@ -24,6 +24,7 @@ exports.handler=async(event,context)=>{
   const action=event.queryStringParameters?.action||'health';
   if(action==='health')return response(200,{configured:configured(),environment:environment(),orders_enabled:process.env.LULU_ENABLE_ORDERS==='true',identity_required:process.env.LULU_REQUIRE_IDENTITY==='true',contact_email_configured:Boolean(process.env.LULU_CONTACT_EMAIL)});
   if(!configured())throw new L.InputError('Lulu is ready in the site, but its API credentials have not been added to Netlify yet.',503);
+  if(action==='connection'){if(event.httpMethod!=='POST')throw new L.InputError('Use POST to test the connection.',405);await token();return response(200,{authenticated:true,environment:environment(),orders_enabled:process.env.LULU_ENABLE_ORDERS==='true'});}
   if(action==='status')return response(200,await lulu(`/print-jobs/${L.safeJobId(event.queryStringParameters?.id)}/`));
   if(event.httpMethod!=='POST')throw new L.InputError('Use POST for this print request.',405);
   const body=parse(event);

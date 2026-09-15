@@ -9,6 +9,7 @@ const {chromium}=require('playwright');
  await page.route('**/.netlify/functions/lulu?*',async route=>{
   const req=route.request(),action=new URL(req.url()).searchParams.get('action'),body=req.postDataJSON();requests.push({action,body});
   let data={},status=200;
+  if(action==='connection')data={authenticated:true,environment:'sandbox',orders_enabled:enabled};
   if(action==='health')data={configured,environment:'sandbox',orders_enabled:enabled,contact_email_configured:false};
   if(action==='shipping-options')data=[{level:'GROUND_HD'},{level:'EXPRESS'}];
   if(action==='quote'){if(quoteFails){data={error:'Test: Lulu could not validate this address.'};status=400;}else data={currency:'USD',total_cost_incl_tax:'31.50',total_tax:'1.50',line_item_costs:[{total_cost_excl_tax:'20.00'}],shipping_cost:{total_cost_excl_tax:'8.00'},fulfillment_cost:{total_cost_excl_tax:'2.00'}};}
@@ -18,7 +19,7 @@ const {chromium}=require('playwright');
  });
  const check=(name)=>console.log('PASS',name);
  await page.goto('http://127.0.0.1:8765/#/print-studio');
- await page.getByText('Lulu test environment configured',{exact:true}).waitFor();
+ await page.getByText('Connected to Lulu sandbox',{exact:true}).waitFor();
  await page.getByRole('link',{name:'Prepare my first book →'}).click();
  await page.locator('#lulu-title').fill('Print studio test');
  await page.locator('#lulu-subtitle').fill('A book made for real people');

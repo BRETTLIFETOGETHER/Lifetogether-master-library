@@ -32,7 +32,7 @@ The studio separates book preparation, delivery estimates, and order tracking. A
 
 Shipping and quote requests preserve form inputs. Delivery details live only in page memory and never enter localStorage or downloaded estimates. Changing address, quantity, or shipping invalidates the previous quote. Order submission uses the exact quoted payload, requires a final review confirmation, locks duplicate clicks, and consumes the quote before submission. On an ambiguous failure, check the Lulu dashboard before requesting another order.
 
-Without configured Lulu credentials, the interface provides an administrator setup panel, a connection recheck, and a downloadable checklist. It does not fabricate prices or orders. A configured health response confirms environment settings, not successful OAuth; a quote tests the actual service connection. Sandbox jobs do not create physical proofs.
+Without configured Lulu credentials, the interface provides an administrator setup panel, a connection recheck, and a downloadable checklist. It does not fabricate prices or orders. A configured health response confirms environment settings. The Check connection button now also verifies OAuth with Lulu without creating an order. An estimate tests the pricing service. Sandbox jobs do not create physical proofs.
 
 ### Verification
 
