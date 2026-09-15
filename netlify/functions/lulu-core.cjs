@@ -8,7 +8,7 @@ const text=(value,max=500)=>String(value??'').trim().slice(0,max);
 const integer=(value,min,max,label)=>{const n=Number(value);if(!Number.isInteger(n)||n<min||n>max)throw new InputError(`${label} must be between ${min} and ${max}.`);return n;};
 const money=value=>{const n=Number(value);if(!Number.isFinite(n)||n<0||n>1000000)throw new InputError('Retail price is invalid.');return n.toFixed(2);};
 const identifier=(value,label='Identifier')=>{const s=text(value,100);if(!/^[A-Za-z0-9._-]{1,100}$/.test(s))throw new InputError(`${label} is invalid.`);return s;};
-const pod=value=>{const s=text(value,40).toUpperCase();if(!/^[A-Z0-9]{20,40}$/.test(s))throw new InputError('Add a valid Lulu pod package ID.');return s;};
+const pod=value=>{const s=text(value,40).toUpperCase();const legacy=s.match(/^(\d{4}X\d{4})([A-Z]{2})([A-Z]{3})([A-Z]{2})([A-Z0-9]{8})([A-Z0-9]{3})$/);if(legacy)return legacy.slice(1).join('.');if(!/^\d{4}X\d{4}\.[A-Z]{2}\.[A-Z]{3}\.[A-Z]{2}\.[A-Z0-9]+\.[A-Z0-9]{3}$/.test(s))throw new InputError('Add a valid Lulu pod package ID.');return s;};
 const pdfUrl=(value,label)=>{let url;try{url=new URL(text(value,2000));}catch{throw new InputError(`${label} must be a complete HTTPS URL.`);}if(url.protocol!=='https:'||url.username||url.password)throw new InputError(`${label} must be a public HTTPS URL without embedded credentials.`);return url.href;};
 const currency=value=>{const s=text(value,3).toUpperCase()||'USD';if(!CURRENCIES.has(s))throw new InputError('Currency is not supported by Lulu.');return s;};
 const shippingLevel=value=>{const s=text(value,30).toUpperCase();if(!SHIPPING_LEVELS.has(s))throw new InputError('Choose a supported shipping level.');return s;};
@@ -28,7 +28,8 @@ function quotePayload(raw={}){
 }
 function shippingPayload(raw={}){
  const item=raw.line_item||{};
- return {country:text(raw.country,2).toUpperCase(),page_count:integer(item.page_count,1,3000,'Page count'),quantity:integer(item.quantity,1,10000,'Quantity'),pod_package_id:pod(item.pod_package_id),currency:currency(raw.currency)};
+ const {country_code,state_code,email,...destination}=address(raw.shipping_address);
+ return {currency:currency(raw.currency),line_items:[{page_count:integer(item.page_count,1,3000,'Page count'),quantity:integer(item.quantity,1,10000,'Quantity'),pod_package_id:pod(item.pod_package_id)}],shipping_address:{...destination,country:country_code,state_code}};
 }
 function orderPayload(raw={},fallbackEmail=''){
  const quote=quotePayload(raw),item=raw.line_item||{},contact=text(raw.contact_email||fallbackEmail,254);

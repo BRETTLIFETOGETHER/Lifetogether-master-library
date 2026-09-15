@@ -1,12 +1,17 @@
 const luluKey = 'lifetogether-lulu-studio-v1';
-const luluDefaultFormat = '0600X0900BWSTDPB060UW444MXX';
+const luluDefaultFormat = '0600X0900.BW.STD.PB.060UW444.MXX';
+function luluPod(value) {
+  const s=String(value||'').trim().toUpperCase(), legacy=s.match(/^(\d{4}X\d{4})([A-Z]{2})([A-Z]{3})([A-Z]{2})([A-Z0-9]{8})([A-Z0-9]{3})$/);
+  return legacy?legacy.slice(1).join('.'):s;
+}
+const luluValidPod = value => /^\d{4}X\d{4}\.[A-Z]{2}\.[A-Z]{3}\.[A-Z]{2}\.[A-Z0-9]+\.[A-Z0-9]{3}$/.test(luluPod(value));
 let luluState = {schema:luluKey, editions:[], jobs:[]};
 let luluHealth = null, luluBusy = '', luluMessage = '', luluError = false;
 let luluQuote = null, luluShipping = [], luluActiveEdition = '', luluDelivery = {}, luluDrafts = {};
 try {
   const saved = JSON.parse(localStorage.getItem(luluKey) || 'null');
   if (saved?.schema === luluKey && Array.isArray(saved.editions) && Array.isArray(saved.jobs))
-    luluState = {...luluState, editions:saved.editions.slice(0,100), jobs:saved.jobs.slice(0,50)};
+    luluState = {...luluState, editions:saved.editions.slice(0,100).map(e=>({...e,pod_package_id:luluPod(e.pod_package_id)})), jobs:saved.jobs.slice(0,50)};
 } catch {}
 function luluPersist() { localStorage.setItem(luluKey, JSON.stringify(luluState)); }
 function luluMoney(value, currency='USD') {
@@ -20,7 +25,7 @@ function luluPublicURL(value) {
 function luluChecks(edition) {
   return [
     ['Title added', Boolean(edition.title?.trim())],
-    ['Book format and page count set', /^[A-Z0-9]{20,40}$/.test(edition.pod_package_id || '') && Number(edition.page_count) > 0],
+    ['Book format and page count set', luluValidPod(edition.pod_package_id) && Number(edition.page_count) > 0],
     ['Interior PDF link added', Boolean(luluPublicURL(edition.interior_url))],
     ['Cover PDF link added', Boolean(luluPublicURL(edition.cover_url))],
     ['Physical proof approved', ['proof','live'].includes(edition.status)]
@@ -90,8 +95,37 @@ function luluAddressFields() {
 const luluShippingLabel = level => ({MAIL:'Standard mail',PRIORITY_MAIL:'Priority mail',GROUND:'Ground',GROUND_HD:'Ground · residential',GROUND_BUS:'Ground · business',EXPEDITED:'Expedited',EXPRESS:'Express'}[level] || level);
 function luluSummary(edition) { return luluQuote?luluQuoteView(edition):`<span class="eyebrow">YOUR ESTIMATE</span><h2>Know the cost before you order.</h2><p>Enter a destination to see Lulu’s print, shipping, and tax estimate.</p><ul class="pod-checks">${luluChecks(edition).map(([label,ok])=>`<li class="${ok?'done':''}"><span aria-hidden="true">${ok?'✓':'○'}</span> ${E(label)}</li>`).join('')}</ul><a href="#/print-studio?edit=${q(edition.id)}">Review book details →</a><p class="small">You can estimate costs before your files or proof are ready. A quote does not place an order.</p>`; }
 function luluFulfillment(edition) {
-  const options = luluShipping.length ? luluShipping.map(x=>[x.level||x.shipping_level||x.name,luluShippingLabel(x.level||x.shipping_level||x.name)]) : ['MAIL','PRIORITY_MAIL','GROUND','GROUND_HD','GROUND_BUS','EXPEDITED','EXPRESS'].map(x=>[x,luluShippingLabel(x)]);
-  return `<a class="back" href="#/print-studio">← My print books</a><div class="pod-fulfill-head"><div><span class="eyebrow">PRINT & DELIVERY</span><h1>${E(edition.title)}</h1><p>${E(luluFormatLabel(edition))} · ${E(edition.page_count)} pages</p></div><a class="btn" href="#/print-studio?edit=${q(edition.id)}">Edit book</a></div><div class="pod-columns"><form id="lulu-quote" class="pod-panel"><input type="hidden" name="edition_id" value="${E(edition.id)}"><h2>Where should we send it?</h2><p>Your delivery details stay only in this open session and are sent to Lulu when you request a quote or order.</p><div class="formgrid">${luluField('quantity','Number of copies',luluDelivery.quantity||1,{required:true,type:'number',min:1,max:10000})}${luluField('shipping_option','Delivery method',luluDelivery.shipping_option||'MAIL',{options})}${luluAddressFields()}</div><div class="formactions"><button type="button" class="btn" data-lulu="shipping-options">Find delivery options</button><button class="btn primary" type="submit">Calculate my estimate</button></div><p class="small">Delivery options depend on destination and book format. No payment is collected here.</p></form><aside id="lulu-summary" class="pod-panel pod-summary" aria-live="polite">${luluSummary(edition)}</aside></div>`;
+  const options = luluShipping.length ? luluShipping.map(x=>[x.level,luluShippingOptionLabel(x)]) : [['','Find options for this address']];
+  return `<a class="back" href="#/print-studio">← My print books</a><div class="pod-fulfill-head"><div><span class="eyebrow">PRINT & DELIVERY</span><h1>${E(edition.title)}</h1><p>${E(luluFormatLabel(edition))} · ${E(edition.page_count)} pages</p></div><a class="btn" href="#/print-studio?edit=${q(edition.id)}">Edit book</a></div><div class="pod-columns"><form id="lulu-quote" class="pod-panel"><input type="hidden" name="edition_id" value="${E(edition.id)}"><h2>Where should we send it?</h2><p>Your delivery details stay only in this open session and are sent to Lulu when you request a quote or order.</p><div class="formgrid">${luluField('quantity','Number of copies',luluDelivery.quantity||1,{required:true,type:'number',min:1,max:10000})}${luluField('shipping_option','Delivery method',luluDelivery.shipping_option||'',{options})}${luluAddressFields()}</div><div class="formactions"><button type="button" class="btn" data-lulu="shipping-options">Find delivery options</button><button class="btn primary" type="submit">Calculate my estimate</button></div><p class="small">Delivery options depend on destination and book format. No payment is collected here.</p></form><aside id="lulu-summary" class="pod-panel pod-summary" aria-live="polite">${luluSummary(edition)}</aside></div>`;
+}
+function luluShippingOptionLabel(option) {
+  return luluShippingLabel(option.level)+(Number.isFinite(Number(option.cost_excl_tax))?' · '+luluMoney(option.cost_excl_tax,option.currency||'USD')+' shipping before tax':'');
+}
+function luluClearShipping() {
+  luluShipping=[]; luluDelivery.shipping_option='';
+  const select=$('#lulu-shipping_option');
+  if(select) select.innerHTML='<option value="">Find options for this address</option>';
+}
+function luluDestinationStamp(payload) {
+  const {shipping_option,...destination}=payload; return JSON.stringify(destination);
+}
+async function luluLoadShipping(form,edition) {
+  const payload=luluFormPayload(form,edition), stamp=luluDestinationStamp(payload), old=payload.shipping_option;
+  luluInvalidateQuote();
+  try {
+    const result=await luluRequest('shipping-options',{body:{shipping_address:payload.shipping_address,currency:payload.currency,line_item:payload.line_item}});
+    if(params().get('fulfill')!==edition.id||stamp!==luluDestinationStamp(luluFormPayload(form,edition))) throw Error('Delivery details changed while loading options. Please try again.');
+    luluShipping=(Array.isArray(result)?result:result.results||result.shipping_options||[])
+      .map(x=>({...x,level:x.level||x.shipping_level}))
+      .filter(x=>x.level&&x.is_active!==false)
+      .sort((a,b)=>(Number(a.cost_excl_tax)||0)-(Number(b.cost_excl_tax)||0));
+    luluShipping=luluShipping.filter((x,i,all)=>all.findIndex(y=>y.level===x.level)===i);
+    if(!luluShipping.length) throw Error('No delivery methods are available for this book and address. Check the address, number of copies, and book format, then try again.');
+    const select=$('#lulu-shipping_option');
+    select.innerHTML=luluShipping.map(x=>`<option value="${E(x.level)}">${E(luluShippingOptionLabel(x))}</option>`).join('');
+    if(luluShipping.some(x=>x.level===old)) select.value=old;
+    luluDelivery.shipping_option=select.value;
+  } catch(error) { luluClearShipping(); throw error; }
 }
 function luluOrderBlock(edition) {
   if (!luluHealth?.configured) return 'Connect your Lulu account to place an order.';
@@ -122,7 +156,7 @@ function luluPage() {
 }
 function luluFormPayload(form,edition) {
   const f = Object.fromEntries(new FormData(form));
-  return {currency:edition.currency,line_item:{title:edition.title,pod_package_id:edition.pod_package_id,page_count:Number(edition.page_count),quantity:Number(f.quantity),cover_url:edition.cover_url,interior_url:edition.interior_url,external_id:edition.id},shipping_address:{name:f.name,organization:f.organization,street1:f.street1,street2:f.street2,city:f.city,state_code:f.state_code,postcode:f.postcode,country_code:f.country_code?.toUpperCase(),phone_number:f.phone_number,email:f.email,is_business:false},shipping_option:f.shipping_option};
+  return {currency:edition.currency,line_item:{title:edition.title,pod_package_id:luluPod(edition.pod_package_id),page_count:Number(edition.page_count),quantity:Number(f.quantity),cover_url:edition.cover_url,interior_url:edition.interior_url,external_id:edition.id},shipping_address:{name:f.name,organization:f.organization,street1:f.street1,street2:f.street2,city:f.city,state_code:f.state_code,postcode:f.postcode,country_code:f.country_code?.toUpperCase(),phone_number:f.phone_number,email:f.email,is_business:false},shipping_option:f.shipping_option};
 }
 function luluInvalidateQuote() {
   if (!luluQuote) return;
@@ -136,7 +170,7 @@ function luluInput(e) {
   if (form?.id==='lulu-edition') { luluDrafts[form.dataset.draft] = Object.fromEntries(new FormData(form)); return true; }
   if (form?.id==='lulu-quote') {
     luluDelivery = {...luluDelivery,...Object.fromEntries(new FormData(form))};
-    if (['country_code','quantity'].includes(el.name)) luluShipping = [];
+    if(el.name!=='shipping_option') luluClearShipping();
     luluInvalidateQuote(); return true;
   }
   if (['lulu-contact_email','lulu-external_id'].includes(el.id)) { luluDelivery[el.name] = el.value; return true; }
@@ -159,9 +193,9 @@ function luluSubmit(e) {
       const f = Object.fromEntries(new FormData(form));
       if (form.id==='lulu-edition') {
         const current = luluState.editions.find(x=>x.id===f.edition_id);
-        const edition = {id:current?.id||CB.id(),record_id:(f.record_id||'').trim(),title:(f.title||'').trim(),subtitle:(f.subtitle||'').trim(),pod_package_id:f.format==='paperback'?luluDefaultFormat:(f.pod_package_id||'').trim().toUpperCase(),page_count:Number(f.page_count),retail_price:Number(f.retail_price).toFixed(2),currency:f.currency,status:f.status,interior_url:(f.interior_url||'').trim(),cover_url:(f.cover_url||'').trim(),notes:(f.notes||'').trim(),updated_at:new Date().toISOString()};
+        const edition = {id:current?.id||CB.id(),record_id:(f.record_id||'').trim(),title:(f.title||'').trim(),subtitle:(f.subtitle||'').trim(),pod_package_id:f.format==='paperback'?luluDefaultFormat:luluPod(f.pod_package_id),page_count:Number(f.page_count),retail_price:Number(f.retail_price).toFixed(2),currency:f.currency,status:f.status,interior_url:(f.interior_url||'').trim(),cover_url:(f.cover_url||'').trim(),notes:(f.notes||'').trim(),updated_at:new Date().toISOString()};
         if (!edition.title) throw Error('Add a title for your book.');
-        if (!/^[A-Z0-9]{20,40}$/.test(edition.pod_package_id)) throw Error('Check the Lulu format code, or choose the 6 × 9 paperback preset.');
+        if (!luluValidPod(edition.pod_package_id)) throw Error('Check the Lulu format code, or choose the 6 × 9 paperback preset.');
         for (const [key,label] of [['interior_url','Interior PDF'],['cover_url','Cover PDF']]) if(edition[key]&&!luluPublicURL(edition[key])) throw Error(`${label} needs an HTTPS download link without a username or password.`);
         const before = [...luluState.editions];
         if(current) luluState.editions[luluState.editions.indexOf(current)]=edition; else luluState.editions.unshift(edition);
@@ -172,12 +206,13 @@ function luluSubmit(e) {
         const edition=luluState.editions.find(x=>x.id===f.edition_id);
         if(!edition) throw Error('Choose a saved book first.');
         luluDelivery={...luluDelivery,...f};
+        await luluLoadShipping(form,edition);
         const payload=luluFormPayload(form,edition), stamp=JSON.stringify(payload);
         const result=await luluRequest('quote',{body:payload});
         if(currentRoute()[0]!=='print-studio'||params().get('fulfill')!==edition.id) return;
         if(stamp!==JSON.stringify(luluFormPayload(form,edition))) throw Error('Your delivery details changed while calculating. Please calculate again.');
         luluQuote={...result,_payload:payload,_reference:`LT-${CB.id()}`};
-        $('#lulu-summary').innerHTML=luluQuoteView(edition); luluNotify('Your live estimate is ready. No order has been placed.');
+        $('#lulu-summary').innerHTML=luluQuoteView(edition); luluNotify(`Your live estimate is ready using ${luluShippingLabel(payload.shipping_option)}. You can choose another available delivery method and calculate again. No order has been placed.`);
       }
     } catch(err) { luluNotify(err.message,true); }
     finally { luluSetBusy(''); }
@@ -215,18 +250,11 @@ function luluClick(e) {
       if(action==='shipping-options') {
         const form=$('#lulu-quote'), f=Object.fromEntries(new FormData(form));
         luluDelivery={...luluDelivery,...f};
-        if(!/^[A-Za-z]{2}$/.test(f.country_code||'')) throw Error('Enter a two-letter country code, such as US, before finding delivery options.');
-        if(!Number.isInteger(Number(f.quantity))||Number(f.quantity)<1||Number(f.quantity)>10000) throw Error('Choose between 1 and 10,000 copies.');
         if(!luluHealth?.configured) throw Error('Connect Lulu to load delivery options. Open “Set up Lulu” above for the account steps.');
-        const payload=luluFormPayload(form,edition); luluNotify('Finding delivery options for your book…');
-        const result=await luluRequest('shipping-options',{body:{country:payload.shipping_address.country_code,currency:payload.currency,line_item:payload.line_item}});
-        if(params().get('fulfill')!==edition.id||f.quantity!==form.elements.quantity.value||f.country_code!==form.elements.country_code.value) return;
-        luluShipping=(Array.isArray(result)?result:result.results||result.shipping_options||[]).filter(x=>x.level||x.shipping_level||x.name);
-        if(!luluShipping.length) throw Error('Lulu returned no delivery options for this destination and book. Check the country and format.');
-        const select=$('#lulu-shipping_option'), old=select.value;
-        select.innerHTML=luluShipping.map(x=>{const level=x.level||x.shipping_level||x.name;return `<option value="${E(level)}">${E(luluShippingLabel(level))}</option>`}).join('');
-        if(luluShipping.some(x=>(x.level||x.shipping_level||x.name)===old)) select.value=old;
-        luluDelivery.shipping_option=select.value; luluInvalidateQuote(); luluNotify(`${luluShipping.length} delivery options found. Choose a method, then calculate your estimate.`); return;
+        if(!form.reportValidity()) return;
+        luluNotify('Finding delivery options for your book…');
+        await luluLoadShipping(form,edition);
+        luluNotify(`${luluShipping.length} delivery options found. Choose a method, then calculate your estimate.`); return;
       }
       if(action==='create-order') {
         if(!luluQuote?._payload) throw Error('Calculate a fresh estimate before ordering.');
