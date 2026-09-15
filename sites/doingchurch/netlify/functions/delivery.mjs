@@ -1703,123 +1703,141 @@ var getStore = (input, options) => {
   );
 };
 
-// platform/functions/commerce-core.mjs
-import { createHmac, timingSafeEqual, randomUUID } from "node:crypto";
+// platform/functions/delivery-core.mjs
+import { randomUUID, randomBytes, createHash } from "node:crypto";
+var digest = (value) => createHash("sha256").update(value).digest("hex");
+function validateCampaign(body, now = Date.now()) {
+  if (!["email", "sms"].includes(body.channel)) throw Error("Choose email or SMS.");
+  if (!String(body.title || "").trim()) throw Error("Give the campaign a title.");
+  if (!Array.isArray(body.messages) || !body.messages.length || body.messages.length > 90) throw Error("Use 1\u201390 scheduled messages.");
+  const messages = body.messages.map((m, i) => {
+    const at = new Date(m.at);
+    if (!Number.isFinite(at.getTime()) || at.getTime() <= now) throw Error("Every send time must be in the future.");
+    const content = String(m.body || "").trim(), subject = String(m.subject || "").trim();
+    if (!content || content.length > (body.channel === "sms" ? 1e3 : 3e4)) throw Error(body.channel === "sms" ? "Keep each text to 1\u20131,000 characters." : "Keep each email to 1\u201330,000 characters.");
+    if (body.channel === "email" && (!subject || subject.length > 200)) throw Error("Each email needs a subject of 1\u2013200 characters.");
+    return { id: randomUUID(), at: at.toISOString(), body: content, subject };
+  });
+  return { id: randomUUID(), title: String(body.title).trim().slice(0, 200), channel: body.channel, messages, status: "draft", createdAt: new Date(now).toISOString() };
+}
+function newSubscription(user, workspace) {
+  return { id: digest(workspace + "|" + user.id), workspace, user: user.id, email: user.email, emailOptIn: false, smsOptIn: false, token: randomBytes(32).toString("base64url") };
+}
 
-// platform/functions/workspaces-core.mjs
-var ApiError = class extends Error {
-  constructor(status, message) {
-    super(message);
-    this.status = status;
-  }
+// platform/functions/delivery.mjs
+var fail = (message, status = 400) => {
+  throw Object.assign(Error(message), { status });
 };
-
-// platform/functions/commerce-core.mjs
-function configuration(env) {
-  let products = [];
+var id = (v) => /^[a-zA-Z0-9-]{1,100}$/.test(v || "") ? v : fail("Invalid identifier.");
+var ready = (channel) => channel === "email" ? Boolean(process.env.RESEND_API_KEY && process.env.CAMPAIGN_FROM_EMAIL) : Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_MESSAGING_SERVICE_SID);
+var delivery_default = async (request) => {
+  const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" }, store = getStore({ name: "lifetogether-delivery-v1", consistency: "strong" });
   try {
-    products = JSON.parse(env.LT_APPROVED_PRODUCTS || "[]");
-  } catch {
-    throw new ApiError(503, "The approved product configuration needs correction.");
-  }
-  const domain = String(env.SHOPIFY_STORE_DOMAIN || "");
-  if (domain && !/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(domain)) throw new ApiError(503, "The Shopify store domain is invalid.");
-  products = products.filter((p) => p.approved === true && /^[a-z0-9-]{1,80}$/.test(p.id) && /^gid:\/\/shopify\/ProductVariant\/\d+$/.test(p.variantId) && /^\d+\.\d{2}$/.test(p.amount) && /^[A-Z]{3}$/.test(p.currency) && p.title && p.license);
-  return { domain, token: env.SHOPIFY_STOREFRONT_TOKEN || "", products, version: "2026-07", configured: Boolean(domain && env.SHOPIFY_STOREFRONT_TOKEN && products.length) };
-}
-function verifyWebhook(raw, signature, secret) {
-  if (!secret || !signature) return false;
-  const expected = createHmac("sha256", secret).update(raw).digest(), given = Buffer.from(signature, "base64");
-  return expected.length === given.length && timingSafeEqual(expected, given);
-}
-function createCommerce(env, store, fetcher = fetch) {
-  async function graphql(query, variables) {
-    const c = configuration(env), r = await fetcher(`https://${c.domain}/api/${c.version}/graphql.json`, { method: "POST", headers: { "Content-Type": "application/json", "X-Shopify-Storefront-Access-Token": c.token }, body: JSON.stringify({ query, variables }), signal: AbortSignal.timeout(15e3) }), data = await r.json();
-    if (!r.ok || data.errors) throw new ApiError(502, "Shopify could not complete the request. Please retry.");
-    return data.data;
-  }
-  return async (action, body, user) => {
-    const c = configuration(env);
-    if (action === "offers") return { configured: c.configured, products: c.products.map(({ variantId, approved, ...p }) => p), message: c.configured ? "Prices are verified again before checkout." : "Approved products, pricing and Shopify credentials have not been connected yet." };
-    if (!user?.id) throw new ApiError(401, "Sign in before opening checkout or viewing receipts.");
-    if (action === "receipts") {
-      const listed = await store.list({ prefix: "receipts/" + user.id + "/" });
-      const receipts = [];
-      for (const row of listed.blobs || []) {
-        const data2 = await store.get(row.key, { type: "json" });
-        if (data2) receipts.push(data2);
-      }
-      return { receipts };
+    const url = new URL(request.url);
+    if (url.searchParams.get("unsubscribe")) {
+      const key2 = id(url.searchParams.get("unsubscribe")), token = url.searchParams.get("token"), s = await store.get("subscribers/" + key2, { type: "json" });
+      if (!s || !token || digest(s.token) !== digest(token)) fail("This preference link is unavailable.", 404);
+      if (request.method === "GET") return new Response('<!doctype html><meta name="viewport" content="width=device-width"><title>LifeTogether delivery preferences</title><main style="max-width:36rem;margin:12vh auto;padding:2rem;font:18px system-ui"><h1>Stop campaign messages?</h1><p>This stops campaign email and text messages from this workspace. Your account stays active.</p><form method="post"><button style="padding:1rem">Unsubscribe from this workspace</button></form></main>', { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+      if (request.method !== "POST") fail("Use POST.", 405);
+      await store.setJSON("subscribers/" + key2, { ...s, emailOptIn: false, smsOptIn: false, unsubscribedAt: (/* @__PURE__ */ new Date()).toISOString() });
+      return new Response("You are unsubscribed from this workspace\u2019s campaign messages.", { headers });
     }
-    if (action !== "checkout") throw new ApiError(400, "Unknown commerce action.");
-    if (!c.configured) throw new ApiError(503, "Checkout is waiting for approved products and pricing.");
-    const product = c.products.find((p) => p.id === body.product);
-    if (!product) throw new ApiError(400, "Choose an approved product.");
-    const quantity = Number(body.quantity || 1);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new ApiError(400, "Quantity must be between 1 and 100.");
-    const data = await graphql("query Variant($id:ID!){node(id:$id){... on ProductVariant{id availableForSale price{amount currencyCode} product{title}}}}", { id: product.variantId }), variant = data.node;
-    if (!variant?.availableForSale) throw new ApiError(409, "This product is not available for sale.");
-    if (Number(variant.price.amount).toFixed(2) !== product.amount || variant.price.currencyCode !== product.currency) throw new ApiError(409, "The Shopify price changed. This product needs pricing review before checkout.");
-    const checkout = randomUUID(), pending = { id: checkout, userId: user.id, product: product.id, variantId: product.variantId, title: product.title, license: product.license, quantity, amount: product.amount, currency: product.currency, createdAt: (/* @__PURE__ */ new Date()).toISOString() };
-    const save = await store.setJSON("checkouts/" + checkout, pending, { onlyIfNew: true });
-    if (!save.modified) throw new ApiError(409, "Please try opening checkout again.");
-    const input = { lines: [{ merchandiseId: product.variantId, quantity }], buyerIdentity: { email: user.email }, attributes: [{ key: "lt_checkout", value: checkout }], ...body.discount ? { discountCodes: [String(body.discount).slice(0, 100)] } : {} };
-    const cartData = await graphql("mutation CreateCart($input:CartInput!){cartCreate(input:$input){cart{id checkoutUrl cost{totalAmount{amount currencyCode}}}userErrors{field message}}}", { input });
-    const result = cartData.cartCreate;
-    if (result.userErrors?.length || !result.cart?.checkoutUrl) throw new ApiError(400, result.userErrors?.[0]?.message || "Checkout could not be created.");
-    const url = new URL(result.cart.checkoutUrl);
-    if (url.protocol !== "https:") throw new ApiError(502, "Shopify returned an invalid checkout link.");
-    await store.setJSON("checkouts/" + checkout, { ...pending, cartId: result.cart.id });
-    return { checkoutUrl: url.href, total: result.cart.cost.totalAmount };
-  };
-}
-async function receiveOrder(raw, headers, env, store) {
-  if (!verifyWebhook(raw, headers.get("x-shopify-hmac-sha256"), env.SHOPIFY_WEBHOOK_SECRET)) throw new ApiError(401, "Invalid signature.");
-  if (headers.get("x-shopify-shop-domain") !== env.SHOPIFY_STORE_DOMAIN) throw new ApiError(403, "Unexpected store.");
-  const topic = headers.get("x-shopify-topic");
-  if (!["orders/paid", "orders/cancelled"].includes(topic)) return { accepted: true, ignored: true };
-  let order;
-  try {
-    order = JSON.parse(raw);
-  } catch {
-    throw new ApiError(400, "Invalid order JSON.");
-  }
-  const key = order.note_attributes?.find((x) => x.name === "lt_checkout")?.value;
-  if (!/^[a-z0-9-]{36}$/.test(key || "")) return { accepted: true, ignored: true };
-  const pending = await store.get("checkouts/" + key, { type: "json" });
-  if (!pending) return { accepted: true, ignored: true };
-  if (topic === "orders/paid" && (order.financial_status !== "paid" || order.currency !== pending.currency || !order.line_items?.some((l) => "gid://shopify/ProductVariant/" + l.variant_id === pending.variantId && Number(l.quantity) >= pending.quantity))) throw new ApiError(400, "The paid order does not match the issued checkout.");
-  if (!order.id || !order.updated_at) throw new ApiError(400, "Incomplete order.");
-  const receiptKey = "receipts/" + pending.userId + "/" + String(order.id).replace(/[^0-9]/g, ""), old = await store.getWithMetadata(receiptKey, { type: "json" });
-  if (old?.data.updatedAt >= order.updated_at) return { accepted: true, duplicate: true };
-  const receipt = { orderId: String(order.id), number: String(order.name || order.order_number), title: pending.title, license: pending.license, quantity: pending.quantity, total: String(order.total_price), currency: String(order.currency), status: topic === "orders/cancelled" ? "cancelled" : "paid", updatedAt: order.updated_at, createdAt: order.created_at, source: "Verified Shopify webhook" };
-  const result = await store.setJSON(receiptKey, receipt, old ? { onlyIfMatch: old.etag } : { onlyIfNew: true });
-  if (!result.modified) throw new ApiError(409, "Receipt update is already in progress; retry delivery.");
-  return { accepted: true };
-}
-
-// platform/functions/commerce.mjs
-var commerce_default = async (request) => {
-  const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
-  try {
-    if (request.method !== "POST") return Response.json({ error: "Use POST." }, { status: 405, headers });
-    const raw = await request.text();
-    if (raw.length > 1e6) return Response.json({ error: "Request too large." }, { status: 413, headers });
-    const store = getStore({ name: "lifetogether-commerce-v1", consistency: "strong" });
-    if (new URL(request.url).searchParams.get("webhook") === "shopify") return Response.json(await receiveOrder(raw, request.headers, process.env, store), { headers });
+    if (request.method !== "POST") fail("Use POST.", 405);
     verifyRequestOrigin(request);
-    let body;
-    try {
-      body = JSON.parse(raw);
-    } catch {
-      return Response.json({ error: "Invalid request." }, { status: 400, headers });
-    }
     await refreshSession();
-    return Response.json(await createCommerce(process.env, store)(body.action, body, await getUser()), { headers });
+    const user = await getUser();
+    if (!user) fail("Sign in to manage campaign delivery.", 401);
+    const raw = await request.text();
+    if (raw.length > 28e4) fail("Split this campaign into smaller message schedules.", 413);
+    const body = JSON.parse(raw), workspace = id(body.workspace), ws = await getStore({ name: "lifetogether-platform-v1", consistency: "strong" }).get("workspaces/" + workspace, { type: "json" }), role = ws?.members[user.id]?.role;
+    if (!role) fail("Workspace unavailable.", 404);
+    const key = digest(workspace + "|" + user.id), old = await store.get("subscribers/" + key, { type: "json" }), self = old || newSubscription(user, workspace), admin = ["owner", "editor"].includes(role);
+    if (body.action === "list") {
+      const campaigns = [];
+      if (admin) {
+        const list = await store.list({ prefix: "campaigns/" });
+        for (const entry of list.blobs) {
+          const c2 = await store.get(entry.key, { type: "json" });
+          if (c2.workspace === workspace) campaigns.push(c2);
+        }
+      }
+      const subscriptions = await store.list({ prefix: "subscribers/" });
+      let email = 0, sms = 0;
+      for (const entry of subscriptions.blobs) {
+        const s = await store.get(entry.key, { type: "json" });
+        if (s.workspace === workspace && ws.members[s.user]) {
+          if (s.emailOptIn) email++;
+          if (s.smsOptIn) sms++;
+        }
+      }
+      return Response.json({ campaigns, counts: { email, sms }, preferences: { emailOptIn: self.emailOptIn, smsOptIn: self.smsOptIn, phone: self.phone || "" }, admin, ready: { email: ready("email"), sms: ready("sms"), smsVerification: Boolean(process.env.TWILIO_VERIFY_SERVICE_SID) }, enabled: process.env.CAMPAIGN_DELIVERY_ENABLED === "true" }, { headers });
+    }
+    if (body.action === "preferences") {
+      if (body.emailOptIn === true && body.confirm !== true) fail("Confirm that you want campaign email.");
+      const next = { ...self, email: user.email, emailOptIn: body.emailOptIn === true, emailConsentedAt: body.emailOptIn ? self.emailOptIn ? self.emailConsentedAt : (/* @__PURE__ */ new Date()).toISOString() : self.emailConsentedAt, consentText: body.emailOptIn ? "I choose campaign emails from this workspace and can unsubscribe at any time." : self.consentText };
+      if (body.smsOptOut) next.smsOptIn = false;
+      await store.setJSON("subscribers/" + key, next);
+      return Response.json({ saved: true }, { headers });
+    }
+    if (["sms-code", "sms-confirm"].includes(body.action)) {
+      if (!process.env.TWILIO_VERIFY_SERVICE_SID || !ready("sms")) fail("Connect Twilio SMS and TWILIO_VERIFY_SERVICE_SID to verify phone ownership.", 503);
+      if (body.confirm !== true) fail("Confirm that you want campaign texts.");
+      const phone = String(body.phone || "");
+      if (!/^\+[1-9]\d{7,14}$/.test(phone)) fail("Use an international phone number, for example +14155550123.");
+      const rate = `verification/${key}/${(/* @__PURE__ */ new Date()).toISOString().slice(0, 13)}`;
+      if (body.action === "sms-code") {
+        const r2 = await store.setJSON(rate, { at: (/* @__PURE__ */ new Date()).toISOString() }, { onlyIfNew: true });
+        if (!r2.modified) fail("A verification code was already requested this hour. Use that code or try again later.", 429);
+      }
+      const base = "https://verify.twilio.com/v2/Services/" + encodeURIComponent(process.env.TWILIO_VERIFY_SERVICE_SID), r = await fetch(base + (body.action === "sms-code" ? "/Verifications" : "/VerificationCheck"), { method: "POST", headers: { Authorization: "Basic " + Buffer.from(process.env.TWILIO_ACCOUNT_SID + ":" + process.env.TWILIO_AUTH_TOKEN).toString("base64"), "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(body.action === "sms-code" ? { To: phone, Channel: "sms" } : { To: phone, Code: String(body.code || "") }), signal: AbortSignal.timeout(15e3) }), d = await r.json();
+      if (!r.ok) fail("Phone verification failed. Check the number and code.", 400);
+      if (body.action === "sms-confirm") {
+        if (d.status !== "approved") fail("That code was not accepted.");
+        await store.setJSON("subscribers/" + key, { ...self, phone, smsOptIn: true, smsConsentedAt: (/* @__PURE__ */ new Date()).toISOString(), smsConsentText: "I choose recurring campaign texts from this workspace. Message/data rates may apply. Reply STOP or use the unsubscribe link to stop." });
+      }
+      return Response.json({ status: d.status }, { headers });
+    }
+    if (!admin) fail("Only an owner or editor can schedule campaigns.", 403);
+    if (body.action === "draft") {
+      let campaign2;
+      try {
+        campaign2 = validateCampaign(body);
+      } catch (e) {
+        fail(e.message);
+      }
+      campaign2 = { ...campaign2, workspace, author: user.id };
+      await store.setJSON("campaigns/" + campaign2.id, campaign2, { onlyIfNew: true });
+      return Response.json({ campaign: campaign2 }, { headers });
+    }
+    const campaign = await store.getWithMetadata("campaigns/" + id(body.id), { type: "json" });
+    if (!campaign || campaign.data.workspace !== workspace) fail("Campaign unavailable.", 404);
+    const c = campaign.data;
+    if (body.action === "schedule") {
+      if (c.status !== "draft") fail("Only a draft can be scheduled.");
+      if (body.confirm !== true) fail("Review the exact messages and confirm the schedule.");
+      if (process.env.CAMPAIGN_DELIVERY_ENABLED !== "true" || !ready(c.channel)) fail("Connect the sender service and enable campaign delivery before scheduling.", 503);
+      if (c.messages.some((m) => Date.parse(m.at) <= Date.now())) fail("A send time has passed. Create an updated draft.");
+      c.status = "scheduled";
+      c.approvedBy = user.id;
+      c.approvedAt = (/* @__PURE__ */ new Date()).toISOString();
+    } else if (body.action === "cancel") {
+      c.status = "canceled";
+      c.canceledAt = (/* @__PURE__ */ new Date()).toISOString();
+    } else if (body.action === "results") {
+      const entries = await store.list({ prefix: "attempts/" + c.id + "/" }), results = [];
+      for (const e of entries.blobs) {
+        const r = await store.get(e.key, { type: "json" });
+        results.push({ state: r.state, at: r.at, error: r.error });
+      }
+      return Response.json({ results }, { headers });
+    } else fail("Unknown delivery action.", 404);
+    const result = await store.setJSON("campaigns/" + c.id, c, { onlyIfMatch: campaign.etag });
+    if (!result.modified) fail("This schedule changed. Reload and try again.", 409);
+    return Response.json({ campaign: c }, { headers });
   } catch (e) {
-    return Response.json({ error: Number(e.status) < 500 ? e.message : e.status === 503 ? e.message : "Commerce is temporarily unavailable. Please retry." }, { status: Number(e.status) || 500, headers });
+    return Response.json({ error: e.status ? e.message : "Delivery settings could not be updated. Please retry." }, { status: e.status || 500, headers });
   }
 };
 export {
-  commerce_default as default
+  delivery_default as default
 };

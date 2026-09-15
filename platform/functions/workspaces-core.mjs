@@ -5,7 +5,7 @@ const text=(v,n=200)=>String(v??'').trim().slice(0,n);
 const id=v=>/^[a-zA-Z0-9-]{1,80}$/.test(v||'')?v:fail(400,'Invalid identifier.');
 const hash=v=>createHash('sha256').update(v).digest('hex');
 const kinds=new Set(['church','family','team','circle','advisor']);
-const types=new Set(['profile','campaign','questionnaire','source','edition','service','calendar','tool','reflection','progress','ministry','referral','contribution','outcome']);
+const types=new Set(['profile','campaign','questionnaire','source','edition','service','calendar','tool','reflection','progress','ministry','referral','contribution','outcome','brand','bilingual','delivery']);
 const eventTypes=new Set(['campaign_saved','reader_started','day_completed','circle_created','invitation_created','invitation_accepted','leader_reused','church_handoff']);
 const roles=new Set(['editor','member','viewer']);
 export function createService(store,clock=()=>new Date()) {
@@ -16,10 +16,14 @@ export function createService(store,clock=()=>new Date()) {
  async function account(uid,wid){const key='accounts/'+uid;for(let i=0;i<4;i++){const r=await read(key),data=r?.data||{workspaces:[]};if(data.workspaces.includes(wid))return;data.workspaces.push(wid);const saved=await store.setJSON(key,data,r?{onlyIfMatch:r.etag}:{onlyIfNew:true});if(saved.modified)return}fail(409,'Workspace saved. Open its link to reconnect it to your account.')}
  async function workspace(wid,user){const r=await read('workspaces/'+id(wid));if(!r||!r.data.members[user.id])fail(404,'Workspace not found or access was removed.');return r}
  function visible(doc,user,role){return doc.visibility==='workspace'||doc.owner===user.id}
- function view(w,user){const role=w.members[user.id].role;return {...w,members:Object.fromEntries(Object.entries(w.members).map(([k,m])=>[k,{name:m.name,role:m.role}])),invites:role==='owner'?w.invites.map(({tokenHash,...v})=>v):[],shares:role==='owner'?w.shares.map(({tokenHash,...v})=>v):[],documents:w.documents.filter(d=>visible(d,user,role)),events:w.events.filter(e=>role==='owner'||e.actor===user.id)}}
+ function view(w,user){const role=w.members[user.id].role;return {...w,members:Object.fromEntries(Object.entries(w.members).map(([k,m])=>[k,{name:m.name,role:m.role}])),invites:role==='owner'?w.invites.map(({tokenHash,...v})=>v):[],shares:role==='owner'?w.shares.map(({tokenHash,...v})=>v):[],reviews:(w.reviews||[]).filter(x=>w.documents.some(d=>d.id===x.document&&visible(d,user,role))),documents:w.documents.filter(d=>visible(d,user,role)),events:w.events.filter(e=>role==='owner'||e.actor===user.id)}}
  function edit(w,user){if(!['owner','editor'].includes(w.members[user.id]?.role))fail(403,'An owner or editor must make this change.')}
  function owner(w,user){if(w.members[user.id]?.role!=='owner')fail(403,'Only the workspace owner can change access.')}
  function validateDocument(input,old,user){
+  if(old&&old.type!==input.type)fail(400,'Document type cannot be changed.');
+  if(input.type==='brand'&&input.content?.logo&&!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(input.content.logo))fail(400,'Upload a PNG or JPEG logo.');
+  if(input.type==='brand'&&(!/^#[0-9a-f]{6}$/i.test(input.content?.primary||'')||!/^#[0-9a-f]{6}$/i.test(input.content?.accent||'')))fail(400,'Choose valid brand colors.');
+  if(input.type==='bilingual'&&input.content?.approved)fail(400,'Request approval in Team reviews.');
   if(!types.has(input.type))fail(400,'Choose a supported document type.');
   if(!['private','workspace'].includes(input.visibility))fail(400,'Choose who can see this document.');
   if(input.type==='reflection'&&input.visibility!=='private')fail(400,'Personal reflections stay private.');
@@ -65,6 +69,18 @@ export function createService(store,clock=()=>new Date()) {
    if(old&&old.owner!==user.id)edit(w,user);
    if(body.document?.visibility==='workspace'&&role==='member'&&!['progress','outcome'].includes(body.document?.type))fail(403,'Members can save private work and shared progress. Ask an editor to publish shared plans.');
    const doc=validateDocument(body.document||{},old,user);if(old)w.documents[w.documents.indexOf(old)]=doc;else {if(w.documents.length>=300)fail(400,'This workspace has reached its document limit. Export or create another workspace.');w.documents.push(doc)}result.document=doc;
+  }else if(action==='review'){
+   if(role==='viewer')fail(403,'A read-only account cannot submit reviews.');
+   const doc=w.documents.find(d=>d.id===body.document&&visible(d,user,role));if(!doc)fail(404,'Document unavailable.');
+   const kind=body.kind;if(!['comment','request','approve','changes'].includes(kind))fail(400,'Choose a review action.');
+   if(!text(body.message,4000))fail(400,'Add a review note.');
+   if(['request','approve','changes'].includes(kind))edit(w,user);
+   if(kind==='approve'&&doc.type==='bilingual'&&!String(doc.content.translation||'').trim())fail(400,'Complete the translation before approving it.');
+   if(body.version!==doc.version)fail(409,'The document changed. Review the latest version.');
+   if(kind==='request'&&(!w.members[body.assignee]||!['owner','editor'].includes(w.members[body.assignee].role)))fail(400,'Choose an owner or editor to review.');
+   if(doc.visibility==='private'&&kind==='request'&&body.assignee!==doc.owner)fail(400,'Share the document with the workspace before requesting another person’s review.');
+   const review={id:randomUUID(),document:doc.id,version:doc.version,kind,message:text(body.message,4000),passage:text(body.passage,1000),assignee:kind==='request'?body.assignee:null,actor:user.id,at:now()};
+   w.reviews=[...(w.reviews||[]),review].slice(-1000);result.review=review;
   }else if(action==='invite'){
    owner(w,user);const email=text(body.email,254).toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!roles.has(body.role))fail(400,'Enter a valid email and role.');
    if(w.invites.filter(i=>!i.revoked&&!i.used&&i.expiresAt>now()).length>=50)fail(400,'Remove an unused invitation first.');

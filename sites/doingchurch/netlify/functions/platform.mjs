@@ -921,6 +921,20 @@ var verifyRequestOrigin = (request, options) => {
 var getString = (input) => typeof input === "string" ? input : JSON.stringify(input);
 var base64Decode2 = globalThis.Buffer ? (input) => Buffer.from(input, "base64").toString() : (input) => atob(input);
 var base64Encode = globalThis.Buffer ? (input) => Buffer.from(getString(input)).toString("base64") : (input) => btoa(getString(input));
+var getEnvironment = () => {
+  const { Deno, Netlify, process: process2 } = globalThis;
+  return Netlify?.env ?? Deno?.env ?? {
+    delete: (key) => delete process2?.env[key],
+    get: (key) => process2?.env[key],
+    has: (key) => Boolean(process2?.env[key]),
+    set: (key, value) => {
+      if (process2?.env) {
+        process2.env[key] = value;
+      }
+    },
+    toObject: () => process2?.env ?? {}
+  };
+};
 
 // platform/node_modules/@netlify/otel/dist/main.js
 var GET_TRACER = "__netlify__getTracer";
@@ -938,21 +952,7 @@ function withActiveSpan(tracer, name, optionsOrFn, contextOrFn, fn) {
   return tracer.withActiveSpan(name, optionsOrFn, contextOrFn, func);
 }
 
-// platform/node_modules/@netlify/blobs/dist/chunk-3OMJJ4EG.js
-var getEnvironment = () => {
-  const { Deno, Netlify, process: process2 } = globalThis;
-  return Netlify?.env ?? Deno?.env ?? {
-    delete: (key) => delete process2?.env[key],
-    get: (key) => process2?.env[key],
-    has: (key) => Boolean(process2?.env[key]),
-    set: (key, value) => {
-      if (process2?.env) {
-        process2.env[key] = value;
-      }
-    },
-    toObject: () => process2?.env ?? {}
-  };
-};
+// platform/node_modules/@netlify/blobs/dist/chunk-FWVYH726.js
 var getEnvironmentContext = () => {
   const context = globalThis.netlifyBlobsContext || getEnvironment().get("NETLIFY_BLOBS_CONTEXT");
   if (typeof context !== "string" || !context) {
@@ -1014,13 +1014,23 @@ var getMetadataFromResponse = (response) => {
 };
 var NF_ERROR = "x-nf-error";
 var NF_REQUEST_ID = "x-nf-request-id";
+var DEPLOY_STORE_PREFIX = "deploy:";
+var SITE_STORE_PREFIX = "site:";
+var isDeniedWrite = (res, { method, storeName }) => (res.status === 401 || res.status === 403) && (method === "put" || method === "delete") && storeName !== void 0 && !storeName.startsWith(DEPLOY_STORE_PREFIX);
+var blobsErrorMessage = (res, context) => {
+  let details = res.headers.get(NF_ERROR) || `${res.status} status code`;
+  if (res.headers.has(NF_REQUEST_ID)) {
+    details += `, ID: ${res.headers.get(NF_REQUEST_ID)}`;
+  }
+  if (isDeniedWrite(res, context)) {
+    const storeName = context.storeName?.startsWith(SITE_STORE_PREFIX) ? context.storeName.slice(SITE_STORE_PREFIX.length) : context.storeName;
+    return `Netlify Blobs could not write to store '${storeName}' (${details}). Builds and build plugins can only write to deploy-specific stores: use 'getDeployStore' instead of 'getStore', or pass a 'token' with write access to the store. If this code is not running in a build, check that the token and site ID are valid. See https://docs.netlify.com/build/data-and-storage/netlify-blobs/#deploy-specific-stores`;
+  }
+  return `Netlify Blobs has generated an internal error (${details})`;
+};
 var BlobsInternalError = class extends Error {
-  constructor(res) {
-    let details = res.headers.get(NF_ERROR) || `${res.status} status code`;
-    if (res.headers.has(NF_REQUEST_ID)) {
-      details += `, ID: ${res.headers.get(NF_REQUEST_ID)}`;
-    }
-    super(`Netlify Blobs has generated an internal error (${details})`);
+  constructor(res, context = {}) {
+    super(blobsErrorMessage(res, context));
     this.name = "BlobsInternalError";
   }
 };
@@ -1176,7 +1186,7 @@ var Client = class {
       method
     });
     if (res.status !== 200) {
-      throw new BlobsInternalError(res);
+      throw new BlobsInternalError(res, { method, storeName });
     }
     const { url: signedURL } = await res.json();
     const userHeaders = encodedMetadata ? { [METADATA_HEADER_INTERNAL]: encodedMetadata } : void 0;
@@ -1251,9 +1261,7 @@ var getClientOptions = (options, contextOverride) => {
 };
 
 // platform/node_modules/@netlify/blobs/dist/main.js
-var DEPLOY_STORE_PREFIX = "deploy:";
 var LEGACY_STORE_INTERNAL_PREFIX = "netlify-internal/legacy-namespace/";
-var SITE_STORE_PREFIX = "site:";
 var STATUS_OK = 200;
 var STATUS_PRE_CONDITION_FAILED = 412;
 var Store = class _Store {
@@ -1278,7 +1286,7 @@ var Store = class _Store {
   async delete(key) {
     const res = await this.client.makeRequest({ key, method: "delete", storeName: this.name });
     if (![200, 204, 404].includes(res.status)) {
-      throw new BlobsInternalError(res);
+      throw new BlobsInternalError(res, { method: "delete", storeName: this.name });
     }
   }
   async deleteAll() {
@@ -1287,7 +1295,7 @@ var Store = class _Store {
     while (hasMore) {
       const res = await this.client.makeRequest({ method: "delete", storeName: this.name });
       if (res.status !== 200) {
-        throw new BlobsInternalError(res);
+        throw new BlobsInternalError(res, { method: "delete", storeName: this.name });
       }
       const data = await res.json();
       if (typeof data.blobs_deleted !== "number") {
@@ -1489,7 +1497,7 @@ var Store = class _Store {
           modified: true
         };
       }
-      throw new BlobsInternalError(res);
+      throw new BlobsInternalError(res, { method: "put", storeName: this.name });
     });
   }
   async setJSON(key, data, options = {}) {
@@ -1498,7 +1506,8 @@ var Store = class _Store {
         "blobs.store": this.name,
         "blobs.key": key,
         "blobs.method": "PUT",
-        "blobs.data.type": "json"
+        "blobs.data.type": "json",
+        "blobs.atomic": Boolean(options.onlyIfMatch ?? options.onlyIfNew)
       });
       _Store.validateKey(key);
       const conditions = _Store.getConditions(options);
@@ -1507,7 +1516,7 @@ var Store = class _Store {
         "content-type": "application/json"
       };
       const res = await this.client.makeRequest({
-        ...conditions,
+        conditions,
         body: payload,
         headers,
         key,
@@ -1529,7 +1538,7 @@ var Store = class _Store {
           modified: true
         };
       }
-      throw new BlobsInternalError(res);
+      throw new BlobsInternalError(res, { method: "put", storeName: this.name });
     });
   }
   static formatListResultBlob(result) {
@@ -1709,7 +1718,7 @@ var text = (v, n = 200) => String(v ?? "").trim().slice(0, n);
 var id = (v) => /^[a-zA-Z0-9-]{1,80}$/.test(v || "") ? v : fail(400, "Invalid identifier.");
 var hash = (v) => createHash("sha256").update(v).digest("hex");
 var kinds = /* @__PURE__ */ new Set(["church", "family", "team", "circle", "advisor"]);
-var types = /* @__PURE__ */ new Set(["profile", "campaign", "questionnaire", "source", "edition", "service", "calendar", "tool", "reflection", "progress", "ministry", "referral", "contribution", "outcome"]);
+var types = /* @__PURE__ */ new Set(["profile", "campaign", "questionnaire", "source", "edition", "service", "calendar", "tool", "reflection", "progress", "ministry", "referral", "contribution", "outcome", "brand", "bilingual", "delivery"]);
 var eventTypes = /* @__PURE__ */ new Set(["campaign_saved", "reader_started", "day_completed", "circle_created", "invitation_created", "invitation_accepted", "leader_reused", "church_handoff"]);
 var roles = /* @__PURE__ */ new Set(["editor", "member", "viewer"]);
 function createService(store, clock = () => /* @__PURE__ */ new Date()) {
@@ -1748,7 +1757,7 @@ function createService(store, clock = () => /* @__PURE__ */ new Date()) {
   }
   function view(w, user) {
     const role = w.members[user.id].role;
-    return { ...w, members: Object.fromEntries(Object.entries(w.members).map(([k, m]) => [k, { name: m.name, role: m.role }])), invites: role === "owner" ? w.invites.map(({ tokenHash, ...v }) => v) : [], shares: role === "owner" ? w.shares.map(({ tokenHash, ...v }) => v) : [], documents: w.documents.filter((d) => visible(d, user, role)), events: w.events.filter((e) => role === "owner" || e.actor === user.id) };
+    return { ...w, members: Object.fromEntries(Object.entries(w.members).map(([k, m]) => [k, { name: m.name, role: m.role }])), invites: role === "owner" ? w.invites.map(({ tokenHash, ...v }) => v) : [], shares: role === "owner" ? w.shares.map(({ tokenHash, ...v }) => v) : [], reviews: (w.reviews || []).filter((x) => w.documents.some((d) => d.id === x.document && visible(d, user, role))), documents: w.documents.filter((d) => visible(d, user, role)), events: w.events.filter((e) => role === "owner" || e.actor === user.id) };
   }
   function edit(w, user) {
     if (!["owner", "editor"].includes(w.members[user.id]?.role)) fail(403, "An owner or editor must make this change.");
@@ -1757,6 +1766,10 @@ function createService(store, clock = () => /* @__PURE__ */ new Date()) {
     if (w.members[user.id]?.role !== "owner") fail(403, "Only the workspace owner can change access.");
   }
   function validateDocument(input, old, user) {
+    if (old && old.type !== input.type) fail(400, "Document type cannot be changed.");
+    if (input.type === "brand" && input.content?.logo && !/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(input.content.logo)) fail(400, "Upload a PNG or JPEG logo.");
+    if (input.type === "brand" && (!/^#[0-9a-f]{6}$/i.test(input.content?.primary || "") || !/^#[0-9a-f]{6}$/i.test(input.content?.accent || ""))) fail(400, "Choose valid brand colors.");
+    if (input.type === "bilingual" && input.content?.approved) fail(400, "Request approval in Team reviews.");
     if (!types.has(input.type)) fail(400, "Choose a supported document type.");
     if (!["private", "workspace"].includes(input.visibility)) fail(400, "Choose who can see this document.");
     if (input.type === "reflection" && input.visibility !== "private") fail(400, "Personal reflections stay private.");
@@ -1837,6 +1850,21 @@ function createService(store, clock = () => /* @__PURE__ */ new Date()) {
         w.documents.push(doc);
       }
       result.document = doc;
+    } else if (action === "review") {
+      if (role === "viewer") fail(403, "A read-only account cannot submit reviews.");
+      const doc = w.documents.find((d) => d.id === body.document && visible(d, user, role));
+      if (!doc) fail(404, "Document unavailable.");
+      const kind = body.kind;
+      if (!["comment", "request", "approve", "changes"].includes(kind)) fail(400, "Choose a review action.");
+      if (!text(body.message, 4e3)) fail(400, "Add a review note.");
+      if (["request", "approve", "changes"].includes(kind)) edit(w, user);
+      if (kind === "approve" && doc.type === "bilingual" && !String(doc.content.translation || "").trim()) fail(400, "Complete the translation before approving it.");
+      if (body.version !== doc.version) fail(409, "The document changed. Review the latest version.");
+      if (kind === "request" && (!w.members[body.assignee] || !["owner", "editor"].includes(w.members[body.assignee].role))) fail(400, "Choose an owner or editor to review.");
+      if (doc.visibility === "private" && kind === "request" && body.assignee !== doc.owner) fail(400, "Share the document with the workspace before requesting another person\u2019s review.");
+      const review = { id: randomUUID(), document: doc.id, version: doc.version, kind, message: text(body.message, 4e3), passage: text(body.passage, 1e3), assignee: kind === "request" ? body.assignee : null, actor: user.id, at: now() };
+      w.reviews = [...w.reviews || [], review].slice(-1e3);
+      result.review = review;
     } else if (action === "invite") {
       owner(w, user);
       const email = text(body.email, 254).toLowerCase();

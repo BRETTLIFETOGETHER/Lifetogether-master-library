@@ -6677,11 +6677,11 @@ var require_PDFName = __commonJS({
     };
     var ENFORCER = {};
     var pool = /* @__PURE__ */ new Map();
-    var PDFName = (
+    var PDFName2 = (
       /** @class */
       (function(_super) {
-        tslib_1.__extends(PDFName2, _super);
-        function PDFName2(enforcer, name) {
+        tslib_1.__extends(PDFName3, _super);
+        function PDFName3(enforcer, name) {
           var _this = this;
           if (enforcer !== ENFORCER)
             throw new errors_1.PrivateConstructorError("PDFName");
@@ -6695,7 +6695,7 @@ var require_PDFName = __commonJS({
           _this.encodedName = encodedName;
           return _this;
         }
-        PDFName2.prototype.asBytes = function() {
+        PDFName3.prototype.asBytes = function() {
           var bytes = [];
           var hex = "";
           var escaped = false;
@@ -6727,67 +6727,67 @@ var require_PDFName = __commonJS({
           }
           return new Uint8Array(bytes);
         };
-        PDFName2.prototype.decodeText = function() {
+        PDFName3.prototype.decodeText = function() {
           var bytes = this.asBytes();
           return String.fromCharCode.apply(String, Array.from(bytes));
         };
-        PDFName2.prototype.asString = function() {
+        PDFName3.prototype.asString = function() {
           return this.encodedName;
         };
-        PDFName2.prototype.value = function() {
+        PDFName3.prototype.value = function() {
           return this.encodedName;
         };
-        PDFName2.prototype.clone = function() {
+        PDFName3.prototype.clone = function() {
           return this;
         };
-        PDFName2.prototype.toString = function() {
+        PDFName3.prototype.toString = function() {
           return this.encodedName;
         };
-        PDFName2.prototype.sizeInBytes = function() {
+        PDFName3.prototype.sizeInBytes = function() {
           return this.encodedName.length;
         };
-        PDFName2.prototype.copyBytesInto = function(buffer, offset) {
+        PDFName3.prototype.copyBytesInto = function(buffer, offset) {
           offset += utils_1.copyStringIntoBuffer(this.encodedName, buffer, offset);
           return this.encodedName.length;
         };
-        PDFName2.of = function(name) {
+        PDFName3.of = function(name) {
           var decodedValue = decodeName(name);
           var instance = pool.get(decodedValue);
           if (!instance) {
-            instance = new PDFName2(ENFORCER, decodedValue);
+            instance = new PDFName3(ENFORCER, decodedValue);
             pool.set(decodedValue, instance);
           }
           return instance;
         };
-        PDFName2.Length = PDFName2.of("Length");
-        PDFName2.FlateDecode = PDFName2.of("FlateDecode");
-        PDFName2.Resources = PDFName2.of("Resources");
-        PDFName2.Font = PDFName2.of("Font");
-        PDFName2.XObject = PDFName2.of("XObject");
-        PDFName2.ExtGState = PDFName2.of("ExtGState");
-        PDFName2.Contents = PDFName2.of("Contents");
-        PDFName2.Type = PDFName2.of("Type");
-        PDFName2.Parent = PDFName2.of("Parent");
-        PDFName2.MediaBox = PDFName2.of("MediaBox");
-        PDFName2.Page = PDFName2.of("Page");
-        PDFName2.Annots = PDFName2.of("Annots");
-        PDFName2.TrimBox = PDFName2.of("TrimBox");
-        PDFName2.ArtBox = PDFName2.of("ArtBox");
-        PDFName2.BleedBox = PDFName2.of("BleedBox");
-        PDFName2.CropBox = PDFName2.of("CropBox");
-        PDFName2.Rotate = PDFName2.of("Rotate");
-        PDFName2.Title = PDFName2.of("Title");
-        PDFName2.Author = PDFName2.of("Author");
-        PDFName2.Subject = PDFName2.of("Subject");
-        PDFName2.Creator = PDFName2.of("Creator");
-        PDFName2.Keywords = PDFName2.of("Keywords");
-        PDFName2.Producer = PDFName2.of("Producer");
-        PDFName2.CreationDate = PDFName2.of("CreationDate");
-        PDFName2.ModDate = PDFName2.of("ModDate");
-        return PDFName2;
+        PDFName3.Length = PDFName3.of("Length");
+        PDFName3.FlateDecode = PDFName3.of("FlateDecode");
+        PDFName3.Resources = PDFName3.of("Resources");
+        PDFName3.Font = PDFName3.of("Font");
+        PDFName3.XObject = PDFName3.of("XObject");
+        PDFName3.ExtGState = PDFName3.of("ExtGState");
+        PDFName3.Contents = PDFName3.of("Contents");
+        PDFName3.Type = PDFName3.of("Type");
+        PDFName3.Parent = PDFName3.of("Parent");
+        PDFName3.MediaBox = PDFName3.of("MediaBox");
+        PDFName3.Page = PDFName3.of("Page");
+        PDFName3.Annots = PDFName3.of("Annots");
+        PDFName3.TrimBox = PDFName3.of("TrimBox");
+        PDFName3.ArtBox = PDFName3.of("ArtBox");
+        PDFName3.BleedBox = PDFName3.of("BleedBox");
+        PDFName3.CropBox = PDFName3.of("CropBox");
+        PDFName3.Rotate = PDFName3.of("Rotate");
+        PDFName3.Title = PDFName3.of("Title");
+        PDFName3.Author = PDFName3.of("Author");
+        PDFName3.Subject = PDFName3.of("Subject");
+        PDFName3.Creator = PDFName3.of("Creator");
+        PDFName3.Keywords = PDFName3.of("Keywords");
+        PDFName3.Producer = PDFName3.of("Producer");
+        PDFName3.CreationDate = PDFName3.of("CreationDate");
+        PDFName3.ModDate = PDFName3.of("ModDate");
+        return PDFName3;
       })(PDFObject_1.default)
     );
-    exports.default = PDFName;
+    exports.default = PDFName2;
   }
 });
 
@@ -6842,29 +6842,29 @@ var require_PDFDict = __commonJS({
     var PDFNull_1 = tslib_1.__importDefault(require_PDFNull());
     var PDFObject_1 = tslib_1.__importDefault(require_PDFObject());
     var CharCodes_1 = tslib_1.__importDefault(require_CharCodes());
-    var PDFDict = (
+    var PDFDict2 = (
       /** @class */
       (function(_super) {
-        tslib_1.__extends(PDFDict2, _super);
-        function PDFDict2(map, context) {
+        tslib_1.__extends(PDFDict3, _super);
+        function PDFDict3(map, context) {
           var _this = _super.call(this) || this;
           _this.dict = map;
           _this.context = context;
           return _this;
         }
-        PDFDict2.prototype.keys = function() {
+        PDFDict3.prototype.keys = function() {
           return Array.from(this.dict.keys());
         };
-        PDFDict2.prototype.values = function() {
+        PDFDict3.prototype.values = function() {
           return Array.from(this.dict.values());
         };
-        PDFDict2.prototype.entries = function() {
+        PDFDict3.prototype.entries = function() {
           return Array.from(this.dict.entries());
         };
-        PDFDict2.prototype.set = function(key, value) {
+        PDFDict3.prototype.set = function(key, value) {
           this.dict.set(key, value);
         };
-        PDFDict2.prototype.get = function(key, preservePDFNull) {
+        PDFDict3.prototype.get = function(key, preservePDFNull) {
           if (preservePDFNull === void 0) {
             preservePDFNull = false;
           }
@@ -6873,11 +6873,11 @@ var require_PDFDict = __commonJS({
             return void 0;
           return value;
         };
-        PDFDict2.prototype.has = function(key) {
+        PDFDict3.prototype.has = function(key) {
           var value = this.dict.get(key);
           return value !== void 0 && value !== PDFNull_1.default;
         };
-        PDFDict2.prototype.lookupMaybe = function(key) {
+        PDFDict3.prototype.lookupMaybe = function(key) {
           var _a;
           var types = [];
           for (var _i = 1; _i < arguments.length; _i++) {
@@ -6889,7 +6889,7 @@ var require_PDFDict = __commonJS({
             return void 0;
           return value;
         };
-        PDFDict2.prototype.lookup = function(key) {
+        PDFDict3.prototype.lookup = function(key) {
           var _a;
           var types = [];
           for (var _i = 1; _i < arguments.length; _i++) {
@@ -6901,13 +6901,13 @@ var require_PDFDict = __commonJS({
             return void 0;
           return value;
         };
-        PDFDict2.prototype.delete = function(key) {
+        PDFDict3.prototype.delete = function(key) {
           return this.dict.delete(key);
         };
-        PDFDict2.prototype.asMap = function() {
+        PDFDict3.prototype.asMap = function() {
           return new Map(this.dict);
         };
-        PDFDict2.prototype.uniqueKey = function(tag) {
+        PDFDict3.prototype.uniqueKey = function(tag) {
           if (tag === void 0) {
             tag = "";
           }
@@ -6918,8 +6918,8 @@ var require_PDFDict = __commonJS({
           }
           return key;
         };
-        PDFDict2.prototype.clone = function(context) {
-          var clone = PDFDict2.withContext(context || this.context);
+        PDFDict3.prototype.clone = function(context) {
+          var clone = PDFDict3.withContext(context || this.context);
           var entries = this.entries();
           for (var idx = 0, len = entries.length; idx < len; idx++) {
             var _a = entries[idx], key = _a[0], value = _a[1];
@@ -6927,7 +6927,7 @@ var require_PDFDict = __commonJS({
           }
           return clone;
         };
-        PDFDict2.prototype.toString = function() {
+        PDFDict3.prototype.toString = function() {
           var dictString = "<<\n";
           var entries = this.entries();
           for (var idx = 0, len = entries.length; idx < len; idx++) {
@@ -6937,7 +6937,7 @@ var require_PDFDict = __commonJS({
           dictString += ">>";
           return dictString;
         };
-        PDFDict2.prototype.sizeInBytes = function() {
+        PDFDict3.prototype.sizeInBytes = function() {
           var size = 5;
           var entries = this.entries();
           for (var idx = 0, len = entries.length; idx < len; idx++) {
@@ -6946,7 +6946,7 @@ var require_PDFDict = __commonJS({
           }
           return size;
         };
-        PDFDict2.prototype.copyBytesInto = function(buffer, offset) {
+        PDFDict3.prototype.copyBytesInto = function(buffer, offset) {
           var initialOffset = offset;
           buffer[offset++] = CharCodes_1.default.LessThan;
           buffer[offset++] = CharCodes_1.default.LessThan;
@@ -6963,16 +6963,16 @@ var require_PDFDict = __commonJS({
           buffer[offset++] = CharCodes_1.default.GreaterThan;
           return offset - initialOffset;
         };
-        PDFDict2.withContext = function(context) {
-          return new PDFDict2(/* @__PURE__ */ new Map(), context);
+        PDFDict3.withContext = function(context) {
+          return new PDFDict3(/* @__PURE__ */ new Map(), context);
         };
-        PDFDict2.fromMapWithContext = function(map, context) {
-          return new PDFDict2(map, context);
+        PDFDict3.fromMapWithContext = function(map, context) {
+          return new PDFDict3(map, context);
         };
-        return PDFDict2;
+        return PDFDict3;
       })(PDFObject_1.default)
     );
-    exports.default = PDFDict;
+    exports.default = PDFDict2;
   }
 });
 
@@ -20403,10 +20403,10 @@ var require_PDFDocument = __commonJS({
     var PDFEmbeddedFile_1 = tslib_1.__importDefault(require_PDFEmbeddedFile());
     var PDFJavaScript_1 = tslib_1.__importDefault(require_PDFJavaScript());
     var JavaScriptEmbedder_1 = tslib_1.__importDefault(require_JavaScriptEmbedder());
-    var PDFDocument2 = (
+    var PDFDocument3 = (
       /** @class */
       (function() {
-        function PDFDocument3(context, ignoreEncryption, updateMetadata) {
+        function PDFDocument4(context, ignoreEncryption, updateMetadata) {
           var _this = this;
           this.defaultWordBreaks = [" "];
           this.computePages = function() {
@@ -20445,7 +20445,7 @@ var require_PDFDocument = __commonJS({
           if (updateMetadata)
             this.updateInfoDict();
         }
-        PDFDocument3.load = function(pdf, options) {
+        PDFDocument4.load = function(pdf, options) {
           if (options === void 0) {
             options = {};
           }
@@ -20463,12 +20463,12 @@ var require_PDFDocument = __commonJS({
                   return [4, core_1.PDFParser.forBytesWithOptions(bytes, parseSpeed, throwOnInvalidObject, capNumbers).parseDocument()];
                 case 1:
                   context = _f.sent();
-                  return [2, new PDFDocument3(context, ignoreEncryption, updateMetadata)];
+                  return [2, new PDFDocument4(context, ignoreEncryption, updateMetadata)];
               }
             });
           });
         };
-        PDFDocument3.create = function(options) {
+        PDFDocument4.create = function(options) {
           if (options === void 0) {
             options = {};
           }
@@ -20481,14 +20481,14 @@ var require_PDFDocument = __commonJS({
               pageTreeRef = context.register(pageTree);
               catalog = core_1.PDFCatalog.withContextAndPages(context, pageTreeRef);
               context.trailerInfo.Root = context.register(catalog);
-              return [2, new PDFDocument3(context, false, updateMetadata)];
+              return [2, new PDFDocument4(context, false, updateMetadata)];
             });
           });
         };
-        PDFDocument3.prototype.registerFontkit = function(fontkit) {
+        PDFDocument4.prototype.registerFontkit = function(fontkit) {
           this.fontkit = fontkit;
         };
-        PDFDocument3.prototype.getForm = function() {
+        PDFDocument4.prototype.getForm = function() {
           var form = this.formCache.access();
           if (form.hasXFA()) {
             console.warn("Removing XFA form data as pdf-lib does not support reading or writing XFA");
@@ -20496,63 +20496,63 @@ var require_PDFDocument = __commonJS({
           }
           return form;
         };
-        PDFDocument3.prototype.getTitle = function() {
+        PDFDocument4.prototype.getTitle = function() {
           var title = this.getInfoDict().lookup(core_1.PDFName.Title);
           if (!title)
             return void 0;
           assertIsLiteralOrHexString(title);
           return title.decodeText();
         };
-        PDFDocument3.prototype.getAuthor = function() {
+        PDFDocument4.prototype.getAuthor = function() {
           var author = this.getInfoDict().lookup(core_1.PDFName.Author);
           if (!author)
             return void 0;
           assertIsLiteralOrHexString(author);
           return author.decodeText();
         };
-        PDFDocument3.prototype.getSubject = function() {
+        PDFDocument4.prototype.getSubject = function() {
           var subject = this.getInfoDict().lookup(core_1.PDFName.Subject);
           if (!subject)
             return void 0;
           assertIsLiteralOrHexString(subject);
           return subject.decodeText();
         };
-        PDFDocument3.prototype.getKeywords = function() {
+        PDFDocument4.prototype.getKeywords = function() {
           var keywords = this.getInfoDict().lookup(core_1.PDFName.Keywords);
           if (!keywords)
             return void 0;
           assertIsLiteralOrHexString(keywords);
           return keywords.decodeText();
         };
-        PDFDocument3.prototype.getCreator = function() {
+        PDFDocument4.prototype.getCreator = function() {
           var creator = this.getInfoDict().lookup(core_1.PDFName.Creator);
           if (!creator)
             return void 0;
           assertIsLiteralOrHexString(creator);
           return creator.decodeText();
         };
-        PDFDocument3.prototype.getProducer = function() {
+        PDFDocument4.prototype.getProducer = function() {
           var producer = this.getInfoDict().lookup(core_1.PDFName.Producer);
           if (!producer)
             return void 0;
           assertIsLiteralOrHexString(producer);
           return producer.decodeText();
         };
-        PDFDocument3.prototype.getCreationDate = function() {
+        PDFDocument4.prototype.getCreationDate = function() {
           var creationDate = this.getInfoDict().lookup(core_1.PDFName.CreationDate);
           if (!creationDate)
             return void 0;
           assertIsLiteralOrHexString(creationDate);
           return creationDate.decodeDate();
         };
-        PDFDocument3.prototype.getModificationDate = function() {
+        PDFDocument4.prototype.getModificationDate = function() {
           var modificationDate = this.getInfoDict().lookup(core_1.PDFName.ModDate);
           if (!modificationDate)
             return void 0;
           assertIsLiteralOrHexString(modificationDate);
           return modificationDate.decodeDate();
         };
-        PDFDocument3.prototype.setTitle = function(title, options) {
+        PDFDocument4.prototype.setTitle = function(title, options) {
           utils_1.assertIs(title, "title", ["string"]);
           var key = core_1.PDFName.of("Title");
           this.getInfoDict().set(key, core_1.PDFHexString.fromText(title));
@@ -20561,63 +20561,63 @@ var require_PDFDocument = __commonJS({
             prefs.setDisplayDocTitle(true);
           }
         };
-        PDFDocument3.prototype.setAuthor = function(author) {
+        PDFDocument4.prototype.setAuthor = function(author) {
           utils_1.assertIs(author, "author", ["string"]);
           var key = core_1.PDFName.of("Author");
           this.getInfoDict().set(key, core_1.PDFHexString.fromText(author));
         };
-        PDFDocument3.prototype.setSubject = function(subject) {
+        PDFDocument4.prototype.setSubject = function(subject) {
           utils_1.assertIs(subject, "author", ["string"]);
           var key = core_1.PDFName.of("Subject");
           this.getInfoDict().set(key, core_1.PDFHexString.fromText(subject));
         };
-        PDFDocument3.prototype.setKeywords = function(keywords) {
+        PDFDocument4.prototype.setKeywords = function(keywords) {
           utils_1.assertIs(keywords, "keywords", [Array]);
           var key = core_1.PDFName.of("Keywords");
           this.getInfoDict().set(key, core_1.PDFHexString.fromText(keywords.join(" ")));
         };
-        PDFDocument3.prototype.setCreator = function(creator) {
+        PDFDocument4.prototype.setCreator = function(creator) {
           utils_1.assertIs(creator, "creator", ["string"]);
           var key = core_1.PDFName.of("Creator");
           this.getInfoDict().set(key, core_1.PDFHexString.fromText(creator));
         };
-        PDFDocument3.prototype.setProducer = function(producer) {
+        PDFDocument4.prototype.setProducer = function(producer) {
           utils_1.assertIs(producer, "creator", ["string"]);
           var key = core_1.PDFName.of("Producer");
           this.getInfoDict().set(key, core_1.PDFHexString.fromText(producer));
         };
-        PDFDocument3.prototype.setLanguage = function(language) {
+        PDFDocument4.prototype.setLanguage = function(language) {
           utils_1.assertIs(language, "language", ["string"]);
           var key = core_1.PDFName.of("Lang");
           this.catalog.set(key, core_1.PDFString.of(language));
         };
-        PDFDocument3.prototype.setCreationDate = function(creationDate) {
+        PDFDocument4.prototype.setCreationDate = function(creationDate) {
           utils_1.assertIs(creationDate, "creationDate", [[Date, "Date"]]);
           var key = core_1.PDFName.of("CreationDate");
           this.getInfoDict().set(key, core_1.PDFString.fromDate(creationDate));
         };
-        PDFDocument3.prototype.setModificationDate = function(modificationDate) {
+        PDFDocument4.prototype.setModificationDate = function(modificationDate) {
           utils_1.assertIs(modificationDate, "modificationDate", [[Date, "Date"]]);
           var key = core_1.PDFName.of("ModDate");
           this.getInfoDict().set(key, core_1.PDFString.fromDate(modificationDate));
         };
-        PDFDocument3.prototype.getPageCount = function() {
+        PDFDocument4.prototype.getPageCount = function() {
           if (this.pageCount === void 0)
             this.pageCount = this.getPages().length;
           return this.pageCount;
         };
-        PDFDocument3.prototype.getPages = function() {
+        PDFDocument4.prototype.getPages = function() {
           return this.pageCache.access();
         };
-        PDFDocument3.prototype.getPage = function(index) {
+        PDFDocument4.prototype.getPage = function(index) {
           var pages = this.getPages();
           utils_1.assertRange(index, "index", 0, pages.length - 1);
           return pages[index];
         };
-        PDFDocument3.prototype.getPageIndices = function() {
+        PDFDocument4.prototype.getPageIndices = function() {
           return utils_1.range(0, this.getPageCount());
         };
-        PDFDocument3.prototype.removePage = function(index) {
+        PDFDocument4.prototype.removePage = function(index) {
           var pageCount = this.getPageCount();
           if (this.pageCount === 0)
             throw new errors_1.RemovePageFromEmptyDocumentError();
@@ -20625,11 +20625,11 @@ var require_PDFDocument = __commonJS({
           this.catalog.removeLeafNode(index);
           this.pageCount = pageCount - 1;
         };
-        PDFDocument3.prototype.addPage = function(page) {
+        PDFDocument4.prototype.addPage = function(page) {
           utils_1.assertIs(page, "page", ["undefined", [PDFPage_1.default, "PDFPage"], Array]);
           return this.insertPage(this.getPageCount(), page);
         };
-        PDFDocument3.prototype.insertPage = function(index, page) {
+        PDFDocument4.prototype.insertPage = function(index, page) {
           var pageCount = this.getPageCount();
           utils_1.assertRange(index, "index", 0, pageCount);
           utils_1.assertIs(page, "page", ["undefined", [PDFPage_1.default, "PDFPage"], Array]);
@@ -20647,13 +20647,13 @@ var require_PDFDocument = __commonJS({
           this.pageCount = pageCount + 1;
           return page;
         };
-        PDFDocument3.prototype.copyPages = function(srcDoc, indices) {
+        PDFDocument4.prototype.copyPages = function(srcDoc, indices) {
           return tslib_1.__awaiter(this, void 0, void 0, function() {
             var copier, srcPages, copiedPages, idx, len, srcPage, copiedPage, ref;
             return tslib_1.__generator(this, function(_a) {
               switch (_a.label) {
                 case 0:
-                  utils_1.assertIs(srcDoc, "srcDoc", [[PDFDocument3, "PDFDocument"]]);
+                  utils_1.assertIs(srcDoc, "srcDoc", [[PDFDocument4, "PDFDocument"]]);
                   utils_1.assertIs(indices, "indices", [Array]);
                   return [4, srcDoc.flush()];
                 case 1:
@@ -20672,13 +20672,13 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.copy = function() {
+        PDFDocument4.prototype.copy = function() {
           return tslib_1.__awaiter(this, void 0, void 0, function() {
             var pdfCopy, contentPages, idx, len;
             return tslib_1.__generator(this, function(_a) {
               switch (_a.label) {
                 case 0:
-                  return [4, PDFDocument3.create()];
+                  return [4, PDFDocument4.create()];
                 case 1:
                   pdfCopy = _a.sent();
                   return [4, pdfCopy.copyPages(this, this.getPageIndices())];
@@ -20714,7 +20714,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.addJavaScript = function(name, script) {
+        PDFDocument4.prototype.addJavaScript = function(name, script) {
           utils_1.assertIs(name, "name", ["string"]);
           utils_1.assertIs(script, "script", ["string"]);
           var embedder = JavaScriptEmbedder_1.default.for(script, name);
@@ -20722,7 +20722,7 @@ var require_PDFDocument = __commonJS({
           var javaScript = PDFJavaScript_1.default.of(ref, this, embedder);
           this.javaScripts.push(javaScript);
         };
-        PDFDocument3.prototype.attach = function(attachment, name, options) {
+        PDFDocument4.prototype.attach = function(attachment, name, options) {
           if (options === void 0) {
             options = {};
           }
@@ -20750,7 +20750,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.embedFont = function(font, options) {
+        PDFDocument4.prototype.embedFont = function(font, options) {
           if (options === void 0) {
             options = {};
           }
@@ -20793,7 +20793,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.embedStandardFont = function(font, customName) {
+        PDFDocument4.prototype.embedStandardFont = function(font, customName) {
           utils_1.assertIs(font, "font", ["string"]);
           if (!utils_1.isStandardFont(font)) {
             throw new TypeError("`font` must be one of type `StandardFonts`");
@@ -20804,7 +20804,7 @@ var require_PDFDocument = __commonJS({
           this.fonts.push(pdfFont);
           return pdfFont;
         };
-        PDFDocument3.prototype.embedJpg = function(jpg) {
+        PDFDocument4.prototype.embedJpg = function(jpg) {
           return tslib_1.__awaiter(this, void 0, void 0, function() {
             var bytes, embedder, ref, pdfImage;
             return tslib_1.__generator(this, function(_a) {
@@ -20823,7 +20823,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.embedPng = function(png) {
+        PDFDocument4.prototype.embedPng = function(png) {
           return tslib_1.__awaiter(this, void 0, void 0, function() {
             var bytes, embedder, ref, pdfImage;
             return tslib_1.__generator(this, function(_a) {
@@ -20842,7 +20842,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.embedPdf = function(pdf, indices) {
+        PDFDocument4.prototype.embedPdf = function(pdf, indices) {
           if (indices === void 0) {
             indices = [0];
           }
@@ -20855,14 +20855,14 @@ var require_PDFDocument = __commonJS({
                     "string",
                     Uint8Array,
                     ArrayBuffer,
-                    [PDFDocument3, "PDFDocument"]
+                    [PDFDocument4, "PDFDocument"]
                   ]);
                   utils_1.assertIs(indices, "indices", [Array]);
-                  if (!(pdf instanceof PDFDocument3)) return [3, 1];
+                  if (!(pdf instanceof PDFDocument4)) return [3, 1];
                   _a = pdf;
                   return [3, 3];
                 case 1:
-                  return [4, PDFDocument3.load(pdf)];
+                  return [4, PDFDocument4.load(pdf)];
                 case 2:
                   _a = _b.sent();
                   _b.label = 3;
@@ -20874,7 +20874,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.embedPage = function(page, boundingBox, transformationMatrix) {
+        PDFDocument4.prototype.embedPage = function(page, boundingBox, transformationMatrix) {
           return tslib_1.__awaiter(this, void 0, void 0, function() {
             var embeddedPage;
             return tslib_1.__generator(this, function(_a) {
@@ -20889,7 +20889,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.embedPages = function(pages, boundingBoxes, transformationMatrices) {
+        PDFDocument4.prototype.embedPages = function(pages, boundingBoxes, transformationMatrices) {
           if (boundingBoxes === void 0) {
             boundingBoxes = [];
           }
@@ -20939,7 +20939,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.flush = function() {
+        PDFDocument4.prototype.flush = function() {
           return tslib_1.__awaiter(this, void 0, void 0, function() {
             return tslib_1.__generator(this, function(_a) {
               switch (_a.label) {
@@ -20967,7 +20967,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.save = function(options) {
+        PDFDocument4.prototype.save = function(options) {
           if (options === void 0) {
             options = {};
           }
@@ -20997,7 +20997,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.saveAsBase64 = function(options) {
+        PDFDocument4.prototype.saveAsBase64 = function(options) {
           if (options === void 0) {
             options = {};
           }
@@ -21017,7 +21017,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.findPageForAnnotationRef = function(ref) {
+        PDFDocument4.prototype.findPageForAnnotationRef = function(ref) {
           var pages = this.getPages();
           for (var idx = 0, len = pages.length; idx < len; idx++) {
             var page = pages[idx];
@@ -21028,7 +21028,7 @@ var require_PDFDocument = __commonJS({
           }
           return void 0;
         };
-        PDFDocument3.prototype.embedAll = function(embeddables) {
+        PDFDocument4.prototype.embedAll = function(embeddables) {
           return tslib_1.__awaiter(this, void 0, void 0, function() {
             var idx, len;
             return tslib_1.__generator(this, function(_a) {
@@ -21054,7 +21054,7 @@ var require_PDFDocument = __commonJS({
             });
           });
         };
-        PDFDocument3.prototype.updateInfoDict = function() {
+        PDFDocument4.prototype.updateInfoDict = function() {
           var pdfLib = "pdf-lib (https://github.com/Hopding/pdf-lib)";
           var now = /* @__PURE__ */ new Date();
           var info = this.getInfoDict();
@@ -21065,7 +21065,7 @@ var require_PDFDocument = __commonJS({
           if (!info.get(core_1.PDFName.of("CreationDate")))
             this.setCreationDate(now);
         };
-        PDFDocument3.prototype.getInfoDict = function() {
+        PDFDocument4.prototype.getInfoDict = function() {
           var existingInfo = this.context.lookup(this.context.trailerInfo.Info);
           if (existingInfo instanceof core_1.PDFDict)
             return existingInfo;
@@ -21073,15 +21073,15 @@ var require_PDFDocument = __commonJS({
           this.context.trailerInfo.Info = this.context.register(newInfo);
           return newInfo;
         };
-        PDFDocument3.prototype.assertFontkit = function() {
+        PDFDocument4.prototype.assertFontkit = function() {
           if (!this.fontkit)
             throw new errors_1.FontkitNotRegisteredError();
           return this.fontkit;
         };
-        return PDFDocument3;
+        return PDFDocument4;
       })()
     );
-    exports.default = PDFDocument2;
+    exports.default = PDFDocument3;
     function assertIsLiteralOrHexString(pdfObject) {
       if (!(pdfObject instanceof core_1.PDFHexString) && !(pdfObject instanceof core_1.PDFString)) {
         throw new core_1.UnexpectedObjectTypeError([core_1.PDFHexString, core_1.PDFString], pdfObject);
@@ -22019,6 +22019,36 @@ var require_cjs = __commonJS({
   }
 });
 
+// platform/pdf-inspection.mjs
+var import_pdf_lib = __toESM(require_cjs(), 1);
+async function inspectPDF(bytes, { kind = "interior", width = 6.25, height = 9.25, expectedPages = 0 } = {}) {
+  let pdf;
+  try {
+    pdf = await import_pdf_lib.PDFDocument.load(bytes);
+  } catch {
+    throw Error("This PDF cannot be opened. Remove password protection and export a fresh PDF.");
+  }
+  const errors = [], warnings = [], pages = pdf.getPages(), dimensions = pages.map((p) => ({ width: p.getWidth() / 72, height: p.getHeight() / 72 }));
+  if (kind === "cover" && pages.length !== 1) errors.push("The cover must be one page containing the back, spine, and front.");
+  if (kind === "interior") {
+    if (expectedPages && pages.length !== Number(expectedPages)) errors.push(`The PDF has ${pages.length} pages; your book specifies ${expectedPages}.`);
+    if (dimensions.some((d) => Math.abs(d.width - width) > 0.015 || Math.abs(d.height - height) > 0.015)) errors.push(`Export every page at ${width} \xD7 ${height} inches. The first page is ${dimensions[0].width.toFixed(3)} \xD7 ${dimensions[0].height.toFixed(3)} inches.`);
+    if (pages.length % 2) warnings.push("Odd page count: confirm whether Lulu adds a blank page, then use the final page count for the cover.");
+  }
+  const unembedded = [];
+  for (const [, object] of pdf.context.enumerateIndirectObjects()) {
+    if (!(object instanceof import_pdf_lib.PDFDict) || object.get(import_pdf_lib.PDFName.of("Type"))?.toString() !== "/Font") continue;
+    const subtype = object.get(import_pdf_lib.PDFName.of("Subtype"))?.toString();
+    if (subtype === "/Type0" || subtype === "/Type3") continue;
+    const descriptor = object.lookup(import_pdf_lib.PDFName.of("FontDescriptor"));
+    if (!(descriptor instanceof import_pdf_lib.PDFDict) || !["FontFile", "FontFile2", "FontFile3"].some((k) => descriptor.has(import_pdf_lib.PDFName.of(k)))) unembedded.push(object.get(import_pdf_lib.PDFName.of("BaseFont"))?.toString() || "Unnamed font");
+  }
+  if (unembedded.length) errors.push("Embed these fonts when exporting: " + [...new Set(unembedded)].join(", "));
+  if (kind === "cover") warnings.push("Use Lulu\u2019s exact cover template for the final page count and paper. The visual proof alone cannot certify the spine width.");
+  warnings.push("Check text near the trim, images, contrast, and blank pages visually. Bleed artwork and image resolution require visual review.");
+  return { pageCount: pages.length, dimensions: dimensions[0], errors, warnings, fontsEmbedded: unembedded.length === 0, checkedAt: (/* @__PURE__ */ new Date()).toISOString() };
+}
+
 // platform/node_modules/gotrue-js/lib/index.js
 var HTTPError = class extends Error {
   constructor(response) {
@@ -22935,6 +22965,20 @@ var verifyRequestOrigin = (request, options) => {
 var getString = (input) => typeof input === "string" ? input : JSON.stringify(input);
 var base64Decode2 = globalThis.Buffer ? (input) => Buffer.from(input, "base64").toString() : (input) => atob(input);
 var base64Encode = globalThis.Buffer ? (input) => Buffer.from(getString(input)).toString("base64") : (input) => btoa(getString(input));
+var getEnvironment = () => {
+  const { Deno, Netlify, process: process2 } = globalThis;
+  return Netlify?.env ?? Deno?.env ?? {
+    delete: (key) => delete process2?.env[key],
+    get: (key) => process2?.env[key],
+    has: (key) => Boolean(process2?.env[key]),
+    set: (key, value) => {
+      if (process2?.env) {
+        process2.env[key] = value;
+      }
+    },
+    toObject: () => process2?.env ?? {}
+  };
+};
 
 // platform/node_modules/@netlify/otel/dist/main.js
 var GET_TRACER = "__netlify__getTracer";
@@ -22952,21 +22996,7 @@ function withActiveSpan(tracer, name, optionsOrFn, contextOrFn, fn) {
   return tracer.withActiveSpan(name, optionsOrFn, contextOrFn, func);
 }
 
-// platform/node_modules/@netlify/blobs/dist/chunk-3OMJJ4EG.js
-var getEnvironment = () => {
-  const { Deno, Netlify, process: process2 } = globalThis;
-  return Netlify?.env ?? Deno?.env ?? {
-    delete: (key) => delete process2?.env[key],
-    get: (key) => process2?.env[key],
-    has: (key) => Boolean(process2?.env[key]),
-    set: (key, value) => {
-      if (process2?.env) {
-        process2.env[key] = value;
-      }
-    },
-    toObject: () => process2?.env ?? {}
-  };
-};
+// platform/node_modules/@netlify/blobs/dist/chunk-FWVYH726.js
 var getEnvironmentContext = () => {
   const context = globalThis.netlifyBlobsContext || getEnvironment().get("NETLIFY_BLOBS_CONTEXT");
   if (typeof context !== "string" || !context) {
@@ -23028,13 +23058,23 @@ var getMetadataFromResponse = (response) => {
 };
 var NF_ERROR = "x-nf-error";
 var NF_REQUEST_ID = "x-nf-request-id";
+var DEPLOY_STORE_PREFIX = "deploy:";
+var SITE_STORE_PREFIX = "site:";
+var isDeniedWrite = (res, { method, storeName }) => (res.status === 401 || res.status === 403) && (method === "put" || method === "delete") && storeName !== void 0 && !storeName.startsWith(DEPLOY_STORE_PREFIX);
+var blobsErrorMessage = (res, context) => {
+  let details = res.headers.get(NF_ERROR) || `${res.status} status code`;
+  if (res.headers.has(NF_REQUEST_ID)) {
+    details += `, ID: ${res.headers.get(NF_REQUEST_ID)}`;
+  }
+  if (isDeniedWrite(res, context)) {
+    const storeName = context.storeName?.startsWith(SITE_STORE_PREFIX) ? context.storeName.slice(SITE_STORE_PREFIX.length) : context.storeName;
+    return `Netlify Blobs could not write to store '${storeName}' (${details}). Builds and build plugins can only write to deploy-specific stores: use 'getDeployStore' instead of 'getStore', or pass a 'token' with write access to the store. If this code is not running in a build, check that the token and site ID are valid. See https://docs.netlify.com/build/data-and-storage/netlify-blobs/#deploy-specific-stores`;
+  }
+  return `Netlify Blobs has generated an internal error (${details})`;
+};
 var BlobsInternalError = class extends Error {
-  constructor(res) {
-    let details = res.headers.get(NF_ERROR) || `${res.status} status code`;
-    if (res.headers.has(NF_REQUEST_ID)) {
-      details += `, ID: ${res.headers.get(NF_REQUEST_ID)}`;
-    }
-    super(`Netlify Blobs has generated an internal error (${details})`);
+  constructor(res, context = {}) {
+    super(blobsErrorMessage(res, context));
     this.name = "BlobsInternalError";
   }
 };
@@ -23190,7 +23230,7 @@ var Client = class {
       method
     });
     if (res.status !== 200) {
-      throw new BlobsInternalError(res);
+      throw new BlobsInternalError(res, { method, storeName });
     }
     const { url: signedURL } = await res.json();
     const userHeaders = encodedMetadata ? { [METADATA_HEADER_INTERNAL]: encodedMetadata } : void 0;
@@ -23265,9 +23305,7 @@ var getClientOptions = (options, contextOverride) => {
 };
 
 // platform/node_modules/@netlify/blobs/dist/main.js
-var DEPLOY_STORE_PREFIX = "deploy:";
 var LEGACY_STORE_INTERNAL_PREFIX = "netlify-internal/legacy-namespace/";
-var SITE_STORE_PREFIX = "site:";
 var STATUS_OK = 200;
 var STATUS_PRE_CONDITION_FAILED = 412;
 var Store = class _Store {
@@ -23292,7 +23330,7 @@ var Store = class _Store {
   async delete(key) {
     const res = await this.client.makeRequest({ key, method: "delete", storeName: this.name });
     if (![200, 204, 404].includes(res.status)) {
-      throw new BlobsInternalError(res);
+      throw new BlobsInternalError(res, { method: "delete", storeName: this.name });
     }
   }
   async deleteAll() {
@@ -23301,7 +23339,7 @@ var Store = class _Store {
     while (hasMore) {
       const res = await this.client.makeRequest({ method: "delete", storeName: this.name });
       if (res.status !== 200) {
-        throw new BlobsInternalError(res);
+        throw new BlobsInternalError(res, { method: "delete", storeName: this.name });
       }
       const data = await res.json();
       if (typeof data.blobs_deleted !== "number") {
@@ -23503,7 +23541,7 @@ var Store = class _Store {
           modified: true
         };
       }
-      throw new BlobsInternalError(res);
+      throw new BlobsInternalError(res, { method: "put", storeName: this.name });
     });
   }
   async setJSON(key, data, options = {}) {
@@ -23512,7 +23550,8 @@ var Store = class _Store {
         "blobs.store": this.name,
         "blobs.key": key,
         "blobs.method": "PUT",
-        "blobs.data.type": "json"
+        "blobs.data.type": "json",
+        "blobs.atomic": Boolean(options.onlyIfMatch ?? options.onlyIfNew)
       });
       _Store.validateKey(key);
       const conditions = _Store.getConditions(options);
@@ -23521,7 +23560,7 @@ var Store = class _Store {
         "content-type": "application/json"
       };
       const res = await this.client.makeRequest({
-        ...conditions,
+        conditions,
         body: payload,
         headers,
         key,
@@ -23543,7 +23582,7 @@ var Store = class _Store {
           modified: true
         };
       }
-      throw new BlobsInternalError(res);
+      throw new BlobsInternalError(res, { method: "put", storeName: this.name });
     });
   }
   static formatListResultBlob(result) {
@@ -23709,7 +23748,7 @@ var getStore = (input, options) => {
 };
 
 // platform/functions/print-files.mjs
-var import_pdf_lib = __toESM(require_cjs(), 1);
+var import_pdf_lib2 = __toESM(require_cjs(), 1);
 import { randomUUID, randomBytes, createHash } from "node:crypto";
 var hash = (v) => createHash("sha256").update(v).digest("hex");
 var ID = /^[a-zA-Z0-9-]{1,80}$/;
@@ -23759,14 +23798,16 @@ var print_files_default = async (request) => {
     if (bytes.length > 3e6 || bytes.subarray(0, 5).toString() !== "%PDF-") return Response.json({ error: "Choose a valid PDF under 3 MB." }, { status: 400, headers });
     let pdf;
     try {
-      pdf = await import_pdf_lib.PDFDocument.load(bytes);
+      pdf = await import_pdf_lib2.PDFDocument.load(bytes);
     } catch {
       return Response.json({ error: "The PDF could not be opened. Remove password protection and export it again." }, { status: 400, headers });
     }
     if (body.kind === "cover" && pdf.getPageCount() !== 1) return Response.json({ error: "A Lulu cover must be a single-page spread." }, { status: 400, headers });
     const dimensions = pdf.getPages().map((p) => ({ width: p.getWidth() / 72, height: p.getHeight() / 72 }));
     if (body.kind === "interior" && dimensions.some((d) => Math.abs(d.width - dimensions[0].width) > 0.01 || Math.abs(d.height - dimensions[0].height) > 0.01)) return Response.json({ error: "Every interior page must have the same dimensions." }, { status: 400, headers });
-    const id = randomUUID(), token = randomBytes(32).toString("base64url"), meta = { id, workspace: body.workspace, kind: body.kind, title: String(body.title || "Print file").slice(0, 200), pageCount: pdf.getPageCount(), dimensions: dimensions[0], createdAt: (/* @__PURE__ */ new Date()).toISOString(), expiresAt: new Date(Date.now() + 90 * 864e5).toISOString(), tokenHash: hash(token), owner: user.id };
+    const preflight = await inspectPDF(bytes, { kind: body.kind, width: dimensions[0].width, height: dimensions[0].height });
+    if (preflight.errors.length) return Response.json({ error: preflight.errors.join(" ") }, { status: 400, headers });
+    const id = randomUUID(), token = randomBytes(32).toString("base64url"), meta = { id, workspace: body.workspace, kind: body.kind, title: String(body.title || "Print file").slice(0, 200), pageCount: pdf.getPageCount(), dimensions: dimensions[0], createdAt: (/* @__PURE__ */ new Date()).toISOString(), expiresAt: new Date(Date.now() + 90 * 864e5).toISOString(), tokenHash: hash(token), owner: user.id, reviewer: user.id, reviewNote: String(body.reviewNote || "Reviewed upload confirmed").slice(0, 500), preflight };
     await store.set("files/" + id, bytes);
     await store.setJSON("metadata/" + id, meta, { onlyIfNew: true });
     return Response.json({ file: { ...meta, tokenHash: void 0 }, url: url.origin + "/.netlify/functions/print-files?file=" + id + "&token=" + token }, { headers });
