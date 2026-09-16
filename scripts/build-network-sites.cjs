@@ -31,14 +31,15 @@ fs.rmSync(out,{recursive:true,force:true});
 const deploymentBase=id=>'https://lifetogether-'+({church:'40-day-campaign',groups:'small-group-curriculum',advisor:'christian-advisor-network',familyministry:'family-legacy-ministry',finance:'financial-wisdom-ministry',family:'family-legacy-by-design',flourishing:'flourishing-life-series',workplace:'christian-marketplace',doingchurch:'doing-church-together',sermon:'sermon-curator'}[id])+'.netlify.app/';
 const network=sites.map(x=>({id:x.id,name:x.name,domain:x.domain,url:deploymentBase(x.id)}));
 const htmlTemplate=fs.readFileSync(path.join(root,'src/network-site.html'),'utf8'),css=fs.readFileSync(path.join(root,'src/network-site.css'),'utf8'),app=fs.readFileSync(path.join(root,'src/network-site.js'),'utf8');
-const discovery=fs.readFileSync(path.join(root,'src/discovery-core.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/discovery-ui.js'),'utf8');
-const discoveryCSS=fs.readFileSync(path.join(root,'src/discovery.css'),'utf8');
+const libraryCode=fs.readFileSync(path.join(root,'src/library-updates-core.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/library-updates-ui.js'),'utf8');
+const discovery=libraryCode+'\n'+fs.readFileSync(path.join(root,'src/discovery-core.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/discovery-ui.js'),'utf8');
+const discoveryCSS=fs.readFileSync(path.join(root,'src/library-updates.css'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/discovery.css'),'utf8');
 const manifest=[];
 for(const site of sites){
  const chosen=candidates.filter(x=>belongs(x,site)).map(x=>compact(x,site)).sort((a,b)=>b.score-a.score||a.title.localeCompare(b.title));
  const durations=[...new Set(chosen.flatMap(x=>x.durations))].sort((a,b)=>a-b);
  const intelligence=D.intelligence.map(name=>({name,domains:[...new Set(D.sections[69].rows.filter(row=>row[0]===name).map(row=>row[2]).filter(Boolean))].slice(0,5)}));
- const payload=Buffer.from(zlib.gzipSync(JSON.stringify({site,records:chosen,network,durations,intelligence,commerce:{provider:'Shopify',singleCampaignUrl:'',allAccessUrl:''},masterUrl:'https://lifetogethermasterlibary.netlify.app/'}),{mtime:0})).toString('base64');
+ const payload=Buffer.from(zlib.gzipSync(JSON.stringify({site,records:chosen,libraryUpdates:D.libraryUpdates,network,durations,intelligence,commerce:{provider:'Shopify',singleCampaignUrl:'',allAccessUrl:''},masterUrl:'https://lifetogethermasterlibary.netlify.app/'}),{mtime:0})).toString('base64');
  const marks={sermon:'¶',groups:'✳',advisor:'A',church:'40',familyministry:'⌂',finance:'≋',family:'F',flourishing:'✿',workplace:'↗',doingchurch:'⊕'};
  const colors={sermon:'#8d292c',groups:'#aa432b',advisor:'#152b43',church:'#b62e16',familyministry:'#365d89',finance:'#526349',family:'#865741',flourishing:'#743b59',workplace:'#2451bb',doingchurch:'#a14931'};
  const favicon='data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="${colors[site.id]}"/><text x="32" y="44" text-anchor="middle" font-family="Georgia,serif" font-size="38" fill="#fff8e9">${marks[site.id]}</text></svg>`);

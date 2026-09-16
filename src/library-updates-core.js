@@ -1,0 +1,23 @@
+/* Shared, source-preserving discovery for the September library additions. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.LTLibrary=api})(typeof globalThis!=='undefined'?globalThis:this,()=>{
+ const norm=s=>String(s||'').normalize('NFKD').toLowerCase().replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+ const areas={faith:'Faith & spiritual growth',purpose:'Purpose & calling',relationships:'Marriage & relationships',family:'Parenting & family',community:'Friendship & community',resilience:'Emotional well-being',health:'Whole-life health',work:'Work & leadership',finances:'Financial wisdom',service:'Generosity & service',legacy:'Family legacy',transitions:'Life transitions'};
+ const categoryAreas={1:['purpose','work'],2:['work'],3:['faith','work'],4:['faith','work'],5:['relationships','community'],6:['community'],7:['relationships'],8:['resilience','health'],9:['transitions','work'],10:['work'],11:['work','community'],12:['work','community'],13:['finances','work'],14:['service'],15:['family','relationships'],16:['faith'],17:['faith','resilience'],18:['faith'],19:['service','finances'],20:['legacy','work'],21:['work','service'],22:['relationships','work'],23:['transitions','resilience'],24:['purpose','work'],25:['legacy']};
+ const siteAreas={family:['family','relationships','legacy'],familyministry:['family','relationships','legacy'],flourishing:['health','resilience','relationships','community','purpose','finances'],finance:['finances','service'],advisor:['finances','legacy','relationships','work']};
+ function topics(r){return categoryAreas[r.categoryOrder]||[]}
+ function forSite(rows,site){return !siteAreas[site]?rows:rows.filter(r=>topics(r).some(a=>siteAreas[site].includes(a)))}
+ function present(r,mode='business'){
+  const church=mode==='church';return {...r,displayTitle:church?r.churchTitle||r.title:r.shortTitle||r.title,displaySubtitle:church?r.churchSubtitle||r.subtitle:r.shortSubtitle||r.subtitle,description:church?r.churchDescription:r.businessDescription,need:church?r.churchNeed:r.businessNeed,participantNeed:church?r.memberNeed:r.employeeNeed,leaderNeed:church?r.pastorNeed:r.employerNeed,participants:church?r.churchAudience:r.businessAudience,customization:church?r.customChurch:r.customBusiness,rank:church?r.churchRank:r.businessRank};
+ }
+ function search(rows,filters={}){
+  const mode=filters.mode==='church'?'church':'business',words=norm(filters.q).split(' ').filter(Boolean);
+  return forSite(rows,filters.site).map(r=>present(r,mode)).filter(r=>(!filters.category||r.category===filters.category)&&(!filters.area||topics(r).includes(filters.area))&&(!filters.kind||r.kind===filters.kind)&&(!filters.days||r.days===Number(filters.days))&&(!filters.edition||r.edition===filters.edition)&&(!filters.audience||r.participants===filters.audience)&&words.every(w=>norm([r.title,r.subtitle,r.displayTitle,r.displaySubtitle,r.category,r.need,r.participantNeed,r.leaderNeed,r.description,r.participants].join(' ')).includes(w))).sort((a,b)=>filters.sort==='title'?a.displayTitle.localeCompare(b.displayTitle):a.rank-b.rank||(a.topRank||99)-(b.topRank||99)||a.priority-b.priority||a.id.localeCompare(b.id));
+ }
+ function plan(r,profile={}){
+  const mode=profile.mode==='church'?'church':'business',row=present(r,mode);let start='';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(profile.start||'')){const d=new Date(profile.start+'T12:00:00Z');if(Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===profile.start)start=profile.start}
+  const date=offset=>{if(!start)return '';const d=new Date(start+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+offset);return d.toISOString().slice(0,10)};
+  return {schemaVersion:1,sourceId:'DWT-'+r.id,title:row.displayTitle,subtitle:row.displaySubtitle,status:'Planning brief — proposed concept; teaching and daily readings still require production',originalTitle:r.title,originalSubtitle:r.subtitle,setting:mode,participants:row.participants,participantNeed:row.participantNeed,leaderNeed:row.leaderNeed,days:r.days,startDate:start,goal:String(profile.goal||'').slice(0,1000),edition:String(profile.edition||'').slice(0,120),customization:row.customization,schedule:Array.from({length:Math.ceil(r.days/7)},(_,i)=>({week:i+1,startDay:i*7+1,endDay:Math.min(r.days,i*7+7),date:date(i*7),teaching:'Not supplied — select an authorized source',conversation:'Discuss one example from this week and choose a practical next step.'})),privacy:'This exported plan includes only the answers you entered. Share it only with people you choose.'};
+ }
+ return {areas,topics,forSite,present,search,plan,norm};
+});

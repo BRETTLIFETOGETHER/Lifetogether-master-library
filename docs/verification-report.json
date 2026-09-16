@@ -1,11 +1,11 @@
 {
   "passed": true,
-  "sourceSections": 80,
-  "sourceRows": 70116,
-  "catalogPlacements": 64143,
-  "uniqueRecordIds": 64143,
+  "sourceSections": 81,
+  "sourceRows": 73168,
+  "catalogPlacements": 67195,
+  "uniqueRecordIds": 67195,
   "websiteEntrypoints": 10,
-  "renderedRoutes": 114,
+  "renderedRoutes": 115,
   "recommendationCases": 128,
   "checks": [
     "Source placement retention",

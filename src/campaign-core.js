@@ -66,7 +66,7 @@ const LTCampaign = (() => {
   function catalogLayer(r) {
     if(r['Priority Grade']==='REFERENCE'||/market benchmark|third.party/i.test([r.Category,r['Source Item Type']].join(' ')))return r._section!==1||/removed|park for later|deferred/i.test([r['Build Decision'],r.Notes].join(' '))?'':'church';
     if(denied(r))return '';
-    if(r._section===1||r._memory)return 'lifetogether';
+    if(r._section===1||r._memory||r._updates?.kind==='journey')return 'lifetogether';
     return '';
   }
   function fromRecord(r) {return source({id:'SRC-'+r['Master ID'],recordId:r['Master ID'],layer:catalogLayer(r),title:r['Campaign Title'],subtitle:r.Subtitle,kind:r._memory?'recovered concept':'catalog reference',permission:'reference',notes:'',scripture:'',locator:r['Master ID'],catalogRestricted:denied(r)});}
