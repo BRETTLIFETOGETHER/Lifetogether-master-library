@@ -26,6 +26,7 @@ exports.handler=async(event,context)=>{
   if(!configured())throw new L.InputError('Lulu is ready in the site, but its API credentials have not been added to Netlify yet.',503);
   if(action==='connection'){if(event.httpMethod!=='POST')throw new L.InputError('Use POST to test the connection.',405);await token();return response(200,{authenticated:true,environment:environment(),orders_enabled:process.env.LULU_ENABLE_ORDERS==='true'});}
   if(action==='validation-status'){const kind=event.queryStringParameters?.kind;if(!['interior','cover'].includes(kind))throw new L.InputError('Choose interior or cover.');return response(200,await lulu(`/validate-${kind}/${L.safeJobId(event.queryStringParameters?.id)}/`));}
+  if(action==='status'&&environment()==='production')throw new L.InputError('Use Your paid print orders to check production orders securely.',403);
   if(action==='status')return response(200,await lulu(`/print-jobs/${L.safeJobId(event.queryStringParameters?.id)}/`));
   if(event.httpMethod!=='POST')throw new L.InputError('Use POST for this print request.',405);
   const body=parse(event);
@@ -34,6 +35,7 @@ exports.handler=async(event,context)=>{
   if(action==='shipping-options')return response(200,await lulu('/shipping-options/',{method:'POST',body:L.shippingPayload(body)}));
   if(action==='quote')return response(200,await lulu('/print-job-cost-calculations/',{method:'POST',body:L.quotePayload(body)}));
   if(action==='create-order'){
+   if(environment()==='production')throw new L.InputError('Production orders must use the verified Shopify payment checkout in Print Studio.',403);
    if(process.env.LULU_ENABLE_ORDERS!=='true')throw new L.InputError('Live order creation is disabled. Review a sandbox proof, payment flow, and Lulu account billing before enabling it.',403);
    if(process.env.LULU_REQUIRE_IDENTITY==='true'){
     const roles=context.clientContext?.user?.app_metadata?.roles||[];if(!roles.includes('print-admin'))throw new L.InputError('A print-admin sign-in is required to create an order.',403);
