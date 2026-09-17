@@ -1,11 +1,12 @@
 import {randomBytes,randomUUID,createHmac} from 'node:crypto';
+import {staffAccess,staffReady} from './print-staff.mjs';
 import {printRuntime} from './print-runtime.mjs';
 import {PDFDocument} from 'pdf-lib';
 import {createPrintCheckout,PrintError,digest,readiness,checkoutReady,signedWebhook} from './print-checkout-core.mjs';
 export const createPrintHandler = runtime => async (request,context)=>{
   const headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
   try{
-    const {env,store,service}=runtime(),url=new URL(request.url);
+    const {env,store,service,staff}=runtime(),url=new URL(request.url);
     const read=k=>store.get(k,{type:'json'});
     if(request.method==='GET'&&url.searchParams.has('file')){
       const id=url.searchParams.get('file'),token=url.searchParams.get('token')||'';if(!/^[a-f0-9-]{36}$/.test(id))throw new PrintError('File unavailable.',404);
@@ -34,10 +35,13 @@ export const createPrintHandler = runtime => async (request,context)=>{
     async function rate(limit){const old=await store.getWithMetadata(bucket,{type:'json'}),count=old?.data.count||0;if(count>=limit)throw new PrintError('Please wait before trying again.',429);const write=await store.setJSON(bucket,{count:count+1},old?{onlyIfMatch:old.etag}:{onlyIfNew:true});if(!write.modified)throw new PrintError('Please retry in a moment.',429);}
     if(body.action==='session'){
       if(!record||record.expiresAt<Date.now()){await rate(30);session=randomBytes(32).toString('base64url');owner=digest(session);record={expiresAt:Date.now()+30*86400000};await store.setJSON('sessions/'+owner,record);headers['Set-Cookie']='lt_print_session='+session+'; HttpOnly; Secure; SameSite=Lax; Path=/.netlify/functions/print-checkout; Max-Age=2592000';}
-      return Response.json({ready:checkoutReady(env),...readiness(env),orders:await service.orders(owner)},{headers});
+      return Response.json({ready:checkoutReady(env),staffAuthorized:staffAccess(env,owner),staffReady:staffReady(env,owner),...readiness(env),orders:await service.orders(owner)},{headers});
     }
     if(!record||record.expiresAt<Date.now())throw new PrintError('Reopen Print Studio to start a secure upload session.',401);
     await rate(120);
+    if(body.action==='staff-access-request')return Response.json({requestCode:owner},{headers});
+    if(body.action==='staff-prepare')return Response.json(await staff.prepare(body,owner),{headers});
+    if(body.action==='staff-submit')return Response.json(await staff.submit(body,owner),{headers});
     if(body.action==='upload'){
       if(!['interior','cover'].includes(body.kind))throw new PrintError('Choose an interior or cover PDF.');
       const existing=await store.list({prefix:'owner-files/'+owner+'/'});if(existing.blobs.length>=20)throw new PrintError('This session has reached its 20-file limit. Contact the team for more uploads.',429);

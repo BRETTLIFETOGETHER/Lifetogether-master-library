@@ -1,6 +1,7 @@
+import {createStaffProof} from './print-staff.mjs';
 import {getStore} from '@netlify/blobs';
 import {PrintError,createPrintCheckout} from './print-checkout-core.mjs';
-const keys=['URL','DEPLOY_PRIME_URL','LULU_CLIENT_KEY','LULU_CLIENT_SECRET','LULU_API_ENVIRONMENT','LULU_CONTACT_EMAIL','LT_PRINT_CHECKOUT_ENABLED','SHOPIFY_STORE_DOMAIN','SHOPIFY_ADMIN_ACCESS_TOKEN','SHOPIFY_WEBHOOK_SECRET','SHOPIFY_CHECKOUT_DOMAIN'];
+const keys=['LULU_STAFF_SESSION_HASH','LULU_STAFF_ACCESS_EXPIRES','LULU_STAFF_PROOFS_ENABLED','URL','DEPLOY_PRIME_URL','LULU_CLIENT_KEY','LULU_CLIENT_SECRET','LULU_API_ENVIRONMENT','LULU_CONTACT_EMAIL','LT_PRINT_CHECKOUT_ENABLED','SHOPIFY_STORE_DOMAIN','SHOPIFY_ADMIN_ACCESS_TOKEN','SHOPIFY_WEBHOOK_SECRET','SHOPIFY_CHECKOUT_DOMAIN'];
 export function printRuntime(){
  const env=Object.fromEntries(keys.map(k=>[k,Netlify.env.get(k)||'']));
  const store=getStore({name:'lifetogether-print-checkout-v1',consistency:'strong'});
@@ -16,5 +17,6 @@ export function printRuntime(){
       const r=await fetch('https://'+env.SHOPIFY_STORE_DOMAIN+'/admin/api/2026-07/graphql.json',{method:'POST',headers:{'Content-Type':'application/json','X-Shopify-Access-Token':env.SHOPIFY_ADMIN_ACCESS_TOKEN},body:JSON.stringify({query,variables}),signal:AbortSignal.timeout(20000)});
       const data=await r.json();if(!r.ok||data.errors)throw new PrintError('Shopify could not complete this request. Check the store connection.',502);return data.data;
     }
- return {env,store,service:createPrintCheckout({env,store,lulu,shopify})};
+ const service=createPrintCheckout({env,store,lulu,shopify});
+ return {env,store,service,staff:createStaffProof({env,store,lulu,service})};
 }

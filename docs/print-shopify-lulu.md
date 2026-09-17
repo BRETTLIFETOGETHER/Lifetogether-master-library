@@ -65,3 +65,21 @@ node scripts/test-lulu-shipping.cjs
 ```
 
 The bundled functions are committed because the existing Netlify project deploys prebuilt `dist` and `netlify/functions` without a build command. Source lives in `platform/functions`; rebuild both functions after edits. Frontend source is `src/lulu-studio.js`, `src/lulu-checkout.js`, and the existing stylesheet.
+
+## Staff-only direct test copies (Shopify optional)
+
+Print Studio also supports a direct Lulu proof order. It does not use Shopify or collect a customer payment. The Lulu production account pays for the job through its own configured billing.
+
+Approval is limited to one existing browser session, one printer submission, one copy, USD, and at most $100. The $100 server ceiling is a technical limit, not authorization to spend; the user must review and confirm the actual quoted amount. No visitor can enable this privilege in the frontend.
+
+A Netlify administrator verifies the staff member, obtains the code from **Your print orders → Staff test-copy access → Get browser approval code**, and sets these production Functions variables:
+
+- `LULU_STAFF_SESSION_HASH`: that browser's approval code (SHA-256 of its HttpOnly random session cookie; the code alone cannot impersonate the browser).
+- `LULU_STAFF_ACCESS_EXPIRES`: an ISO UTC timestamp in the future and no more than 24 hours away. Invalid, expired or excessive grants fail closed.
+- `LULU_STAFF_PROOFS_ENABLED=true`: enable only after production credentials, billing, reachable printer file links, and the approved browser have been verified. Keep disabled while setup is unfinished.
+
+Redeploy and refresh the print connection. Other browsers remain unauthorized, even if they know the displayed approval code. Remove the grant or disable the feature to revoke access. Clearing the approved browser's cookies also loses access. This is a temporary proof-order authorization, not a permanent staff account system.
+
+Upload and validate both PDFs, select one copy and USD, request a current shipping quote, and choose **Review my test copy**. Review shows title, recipient, address, delivery method, total and the Lulu billing explanation. The confirmation expires after 15 minutes. Submission rechecks files and price, consumes the server-side grant atomically, and records the Lulu result in **Your print orders**. An uncertain provider response permanently consumes that grant to prevent duplicate printing; inspect Lulu before granting a new attempt.
+
+Tests: `node --test platform/tests/print-staff.test.mjs` covers access denial, expiry, production gating, copy/currency/price limits, explicit charge confirmation, concurrency, price increases and uncertain submissions.
