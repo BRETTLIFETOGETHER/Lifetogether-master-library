@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "checkedOn": "2026-09-18",
+  "archiveCommit": "4f2e197c2961d003d5a6063660e39e83ee9ec2f0",
+  "masterInputCommit": "023dea72d6d1727fa72180ddcec2ba4d1685049f",
+  "archiveFiles": 1088,
+  "indexedFiles": 1088,
+  "hashMatchedFiles": 1088,
+  "collections": 130,
+  "missingFromMaster": [],
+  "missingFromArchive": [],
+  "changedHashes": [],
+  "masterTitlePlacements": 18569,
+  "masterTitlesWithSubtitles": 12787,
+  "additionalSourcePlacements": 48626,
+  "additionalJourneyConcepts": 3000,
+  "inputPayloadSHA256": "d65e3321063ad9e6010c73d28ab54af91dda924230872f20c2a1e56f147ed087",
+  "scope": "File recovery verified by Git blob hash. Content completeness, reuse rights, manuscript quality and publication approval are not inferred from recovery. Titles with no subtitle retain the missing field. Source/history/hold records remain available for inspection, not automatic building."
+}
