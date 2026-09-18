@@ -9,3 +9,6 @@ node_modules/
 data/catalog.json
 data/source-tables.json
 data/source-workbook.csvs
+
+# Local Netlify folder
+.netlify

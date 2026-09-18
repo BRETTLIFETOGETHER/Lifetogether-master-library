@@ -57,3 +57,5 @@ write(path.join(out,'README.md'),'# LifeTogether network sites\n\nTen independen
 console.log(JSON.stringify(manifest,null,2));
 
 require('node:child_process').execFileSync(process.execPath,[path.join(root,'platform/build.mjs')],{stdio:'inherit'});
+
+require('./build-formation.cjs');
