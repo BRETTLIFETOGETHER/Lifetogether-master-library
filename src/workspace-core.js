@@ -7,7 +7,7 @@ const LTWorkspace = (() => {
   const fold=v=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
   function empty(){return {schema,revision:'',church:{},sermons:[],collections:[],notes:{},searches:[],events:[],recent:[],survey:{},preferences:{largeText:false,highContrast:false,reduceMotion:false,focus:false},lastBackup:''};}
   function church(raw,C){const out={};for(const [k,v] of Object.entries(C.create().profile)){if(['launchDate','objective','nextStep','catalytic','stories','multiplication','champions'].includes(k))continue;if(raw?.[k]!==undefined)out[k]=typeof v==='number'?C.number(raw[k],0,100000):clean(raw[k],4000);}if(out.goal&&!Object.hasOwn(C.goals,out.goal))delete out.goal;if(out.duration&&!C.durations.includes(out.duration))delete out.duration;if(out.groupSize!==undefined)out.groupSize=C.number(out.groupSize,1,100);if(out.participation!==undefined)out.participation=C.number(out.participation,0,100);return out;}
-  function route(v){const s=clean(v,3000);return /^#\/(home|search|catalog|record|archive|asset|projects|project|ecosystem|website|initiative|intelligence|source|sources|survey|results|collection|campaigns|campaign-finder|print-studio|sermons|church|notebook|calendar|settings|help)(?:[/?]|$)/.test(s)?s:'#/home';}
+  function route(v){const s=clean(v,3000);return /^#\/(home|plan|readiness|studios|websites|search|catalog|record|archive|asset|projects|project|ecosystem|website|initiative|intelligence|source|sources|survey|results|collection|campaigns|campaign-finder|print-studio|sermons|church|notebook|calendar|settings|help)(?:[/?]|$)/.test(s)?s:'#/home';}
   function validate(raw,C,knownIds){
     if(!raw||raw.schema!==schema)throw Error('Choose a LifeTogether workspace file.');
     const out=empty();out.revision=clean(raw.revision,100);out.church=church(raw.church,C);
@@ -40,6 +40,12 @@ const LTWorkspace = (() => {
     return {site,campaigns,shelf,activeId:campaigns.some(c=>c.id===raw.activeId)?raw.activeId:'',compare:(Array.isArray(raw.compare)?raw.compare:[]).filter(id=>shelf.includes(id)||knownIds?.has(id)).slice(0,4)};
   }
   function writeTransaction(storage,entries){const old=entries.map(([k])=>[k,storage.getItem(k)]),written=[];try{for(const [k,v] of entries){storage.setItem(k,v);written.push(k);}}catch(err){for(const [k,v] of old)if(written.includes(k)){if(v===null)storage.removeItem(k);else storage.setItem(k,v);}throw Error('Restore could not fit on this device. The previous workspace was retained.');}}
-  return {schema,backupSchema,empty,validate,church,route,fold,clone,safeKey,sermonKey,mergeSermons,sourceCopy,search,timeline,conflicts,ics,validateBackup,writeTransaction};
+  function localDay(now=new Date()){return [now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');}
+  function taskRows(campaigns,C,today=localDay()){
+    return campaigns.flatMap(c=>C.launchTasks(c).map(t=>({...t,campaignId:c.id,campaignTitle:c.title||'Untitled campaign',example:!!c.example,state:t.done?'done':!t.date?'unscheduled':t.date<today?'overdue':t.date===today?'today':'upcoming'})))
+      .sort((a,b)=>Number(a.done)-Number(b.done)||(a.date||'9999').localeCompare(b.date||'9999')||a.campaignTitle.localeCompare(b.campaignTitle)||a.offset-b.offset);
+  }
+  function filterTasks(rows,{status='open',campaign='',owner='',query=''}={}){const terms=fold(query).split(/\s+/).filter(Boolean);return rows.filter(t=>(status==='all'||status==='open'&&!t.done||status==='unassigned'&&!t.owner.trim()&&!t.done||t.state===status)&&(!campaign||t.campaignId===campaign)&&(!owner||t.owner===owner)&&terms.every(term=>fold([t.title,t.campaignTitle,t.owner,t.role].join(' ')).includes(term)));}
+  return {schema,backupSchema,empty,validate,church,route,fold,clone,safeKey,sermonKey,mergeSermons,sourceCopy,search,timeline,conflicts,ics,validateBackup,writeTransaction,localDay,taskRows,filterTasks};
 })();
 if(typeof module!=='undefined')module.exports=LTWorkspace;
